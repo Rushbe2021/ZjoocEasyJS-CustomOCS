@@ -1,0 +1,69 @@
+<html>
+
+<head>
+    <title>登录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        input {
+            margin: 10px;
+            padding: 5px;
+        }
+
+        button {
+            padding: 5px 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>请输入账号和密码</h2>
+        <input type="text" id="username" placeholder="用户名">
+        <br>
+        <input type="password" id="password" placeholder="密码">
+        <br>
+        <button onclick="login()">确定</button>
+    </div>
+    <script>
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // 发送POST请求
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'http://localhost:5233/courseware', true);
+
+            // 设置请求头
+            xhr.setRequestHeader('Content-Type', 'application/json');
+
+            // 处理响应
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.status === 'success') {
+                        alert('课程视频处理成功！');
+                        window.close();
+                    } else {
+                        alert('处理失败：' + response.message);
+                    }
+                } else {
+                    alert('请求失败，状态码：' + xhr.status);
+                }
+            };
+
+            // 发送数据
+            const data = { username: username, password: password };
+            xhr.send(JSON.stringify(data));
+        }
+    </script>
+</body>
+
+</html>

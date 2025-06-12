@@ -1,0 +1,28 @@
+{
+  "name": "zooceasy",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "gulp",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@babel/core": "^7.22.0",
+    "@babel/preset-env": "^7.22.0",
+    "gulp": "^4.0.2",
+    "gulp-babel": "^8.0.0",
+    "gulp-clean-css": "^4.3.0",
+    "gulp-concat": "^2.6.1",
+    "gulp-uglify": "^3.0.2",
+    "gulp-uglify-es": "^3.0.0",
+    "raw-loader": "^4.0.2",
+    "webpack": "^5.88.0",
+    "webpack-stream": "^7.0.0"
+  },
+  "dependencies": {
+    "gulp-watch": "^5.0.1"
+  }
+}

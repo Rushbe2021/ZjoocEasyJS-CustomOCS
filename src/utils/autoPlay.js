@@ -1,5 +1,5 @@
 import settings from '../settings.js';
-import { sendCoursewareInfo } from './doVideo.js';
+import { doVideo, stopDoVideo } from './doVideo.js';
 // 全局控制变量
 let isRunning = true;
 let currentVideoElement = null;
@@ -209,9 +209,6 @@ function findSections() {
 
 // 查找未完成课程
 function findLessons() {
-  // return Array.from(document.querySelectorAll('i.iconfont:not(.icon-bianji)'))
-  //   .filter(tag => !tag.classList.contains('complete'))
-  //   .map(tag => tag.parentElement);
   const allITags = document.getElementsByTagName('i');
   return Array.from(allITags).filter(tag =>
     tag.classList.contains('iconfont') && // 包含 iconfont 类
@@ -400,6 +397,14 @@ function stopAutoPlay() {
   console.log('正在停止自动播放...');
   isRunning = false;
 
+  // 停止doVideo执行
+  try {
+    stopDoVideo();
+    console.log('已停止doVideo执行');
+  } catch (error) {
+    console.error('停止doVideo时出错:', error);
+  }
+
   // 停止视频播放
   if (currentVideoElement) {
     try {
@@ -447,6 +452,21 @@ function stopAutoPlay() {
     console.error('关闭任务选择窗口时出错:', error);
   }
 
+  // 关闭doVideo窗口
+  try {
+    const doVideoModal = document.querySelector('.do-video-modal');
+    if (doVideoModal) {
+      console.log('正在关闭doVideo窗口');
+      const doVideoStyle = document.querySelector('style[data-for="do-video-modal"]');
+      if (doVideoStyle) {
+        document.head.removeChild(doVideoStyle);
+      }
+      document.body.removeChild(doVideoModal);
+    }
+  } catch (error) {
+    console.error('关闭doVideo窗口时出错:', error);
+  }
+
   console.log('自动播放已完全停止');
 }
 
@@ -456,7 +476,7 @@ async function autoPlay(parsedData, listenRouteWarpper) {
   isRunning = true;
   console.log("视频速刷：",settings.doVideo)
   if(settings.doVideo){
-    await sendCoursewareInfo();
+    await doVideo();
     return ["success", "所有任务已完成"];
   }
   const sections = findSections();
@@ -583,10 +603,17 @@ async function autoPlay(parsedData, listenRouteWarpper) {
   }
    } catch (error) {
       console.error('执行异常:', error);
+      return ["error", "执行过程中发生异常: " + error.message];
     } finally {
       stopAutoPlay();
-      return ["success", "所有任务已完成"];
     }
+    
+    // 检查是否被用户主动停止
+    if (!isRunning) {
+      return ["info", "用户已停止任务"];
+    }
+    
+    return ["success", "所有任务已完成"];
   }
 
 export { autoPlay, stopAutoPlay };

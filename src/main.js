@@ -12,7 +12,13 @@ import insertButtonAndFetchContent from './utils/createDeepSeekButton.js';
 import { checkAndDownload } from './download.js';
 import { showConfirmDialog } from './utils/dialog.js';
 import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
+import checkIfZJLLL from './utils/ifZJLLL.js';
 (function () {
+
+    // 检查是否在ZJLLL网站，如果是则停止执行
+    if (checkIfZJLLL()) {
+        return;
+    }
 
     loadFont('SmileySans-Oblique', 'https://fastly.jsdelivr.net/gh/Miaozeqiu/fontRepository/SmileySans-Oblique.ttf.ec5470fd.woff2').then(success => {
         if (success) {
@@ -100,7 +106,7 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
     zzxLogo.style.width = '20px'
 
     const titleText = document.createElement('span')
-    titleText.innerHTML = 'ZE网课助手 v2.1.1';
+    titleText.innerHTML = '在浙学助手 v2.1.3';
     titleText.style.marginLeft = '10px'
 
     const title = document.createElement('div')
@@ -478,7 +484,6 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
         rightContainer.style.width = '50%';
         rightContainer.style.alignContent = 'center';
         rightContainer.style.justifyItems = 'center';
-        // rightContainer.style.backgroundColor = '#e8e8e8';
 
         const instructions = document.createElement('instructions');
         const span1 = document.createElement('span');
@@ -582,7 +587,7 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
         DeepSeekProxyLabel.appendChild(DeepSeekProxyCheckbox);
         DeepSeekProxyLabel.appendChild(sliderDiv2);
 
-        // 创建静音文本
+        // 创建本地AI按钮
         const DeepSeekProxyText = document.createElement('span');
         DeepSeekProxyText.textContent = '本地AI';
         DeepSeekProxyText.style.whiteSpace = 'nowrap';
@@ -616,14 +621,10 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
                 settings.deepseekProxy = false;
             } else {
                 settings.deepseekProxy = true;
-                
                 checkAndDownload();
             }
-
         });
 
-
-        displayArea.appendChild(DeepSeekProxyWrapper);
 
 
         // 创建“DeepSeekProxy”按钮
@@ -641,13 +642,13 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
         DoVideoLabel.appendChild(DoVideoCheckbox);
         DoVideoLabel.appendChild(sliderDiv3);
 
-        // 创建静音文本
+        // 创建课件速刷
         const DoVideoText = document.createElement('span');
         DoVideoText.textContent = '课件速刷';
         DoVideoText.style.whiteSpace = 'nowrap';
         DoVideoText.style.marginRight = '0px'; // 给文字和开关之间添加间距
 
-        // 包装文字和静音开关的容器
+        // 包装课件速刷的按钮
         const DoVideoWrapper = document.createElement('div');
         DoVideoWrapper.setAttribute('id', 'DoVideoWrapper');
         DoVideoWrapper.style.display = 'flex';
@@ -672,8 +673,8 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
         DoVideoCheckbox.checked = settings.doVideo;
         DoVideoCheckbox.addEventListener('change', async function () {
             console.log(DoVideoCheckbox);
-            if(!settings.doVideo) {
-            const result = await showConfirmDialog(`不建议开启，关闭该选项也可以使用"自动播放"挂课，但开启后的"自动播放"将使用速刷软件在几秒内完成所有课件，这意味着有清空分数的风险，以及需要下载额外的软件（ZError），因此除非正常刷课时间来不及了，否则不建议开启！<br>注意:你在软件中开启服务后，需要关闭该选项，再次打开以进行登录`);
+            if (!settings.doVideo) {
+                const result = await showConfirmDialog(`不建议开启，关闭该选项也可以使用"自动播放"挂课，但开启后"自动播放"将在几秒内完成所有课件，会有被清空的风险，因此除真的非来不及，否则不建议开启！`);
                 if (!result) {
                     console.log('取消开启');
                     renderSettingsPage();
@@ -683,236 +684,49 @@ import autoPlayZJLLL from './utils/autoPlayZJLLL.js';
             // 检测是否从关闭变为开启
             if (!settings.doVideo && this.checked) {
                 settings.doVideo = true;
-                const ServerLive = await checkAndDownload();
-                if(!ServerLive){
-                    return;
-                }
-                // 创建一个新的窗口
-                const windowWidth = 600;
-                const windowHeight = 300;
-
-                // 获取屏幕宽度和高度
-                const screenWidth = window.screen.width;
-                const screenHeight = window.screen.height;
-
-                // 计算弹出窗口的左上角位置，使其居中
-                const left = (screenWidth - windowWidth) / 2;
-                const top = (screenHeight - windowHeight) / 2;
-
-                // 打开窗口并设置位置
-                const loginWindow = window.open('', 'login', `width=${windowWidth},height=${windowHeight},left=${left},top=${top}`);
-
-                // 插入HTML内容
-                loginWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>登录</title>
-                            <style>
-                                body { font-family: Arial, sans-serif; padding: 20px; }
-                                .container { text-align: center; }
-                                input { margin: 10px; padding: 5px; }
-                                button { padding: 5px 15px; }
-                                button:disabled { opacity: 0.6; cursor: not-allowed; }
-                                select { margin: 10px; padding: 5px; }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="container">
-                                <h2>请输入在浙学的账号和密码</h2>
-                                
-                                <select id="usernameSelect" onchange="loadUsername()">
-                                    <option value="">选择之前登录的账号</option>
-                                </select>
-                                <br>
-                                <input type="text" id="username" placeholder="用户名">
-                                <br>
-                                <input type="password" id="password" placeholder="密码">
-                                <br>
-                                <button id="loginBtn" onclick="login()">确定</button>
-                                <button onclick="deleteAccount()">删除账号</button>
-                            </div>
-                            <script>
-                                // 从localStorage加载账号信息
-function loadUsername() {
-                    const selectedUsername = document.getElementById('usernameSelect').value;
-                    if (selectedUsername) {
-                        document.getElementById('username').value = selectedUsername;
-                        const storedData = JSON.parse(localStorage.getItem('accounts')) || [];
-                        const account = storedData.find(acc => acc.username === selectedUsername);
-                        if (account) {
-                            document.getElementById('password').value = account.password;
-                        }
-                    }
-                }
-
-                // 加载之前保存的账号
-                function loadSavedAccounts() {
-                    const storedAccounts = JSON.parse(localStorage.getItem('accounts')) || [];
-                    const selectElement = document.getElementById('usernameSelect');
-                    selectElement.innerHTML = '<option value="">选择之前登录的账号</option>';  // 清空现有的选项
-                    storedAccounts.forEach(account => {
-                        const option = document.createElement('option');
-                        if(account.username){
-                            option.value = account.username;
-                            option.textContent = account.username;
-                            selectElement.appendChild(option);
-                        }
-                    });
-                }
-
-                // 删除账号
-                function deleteAccount() {
-                    const selectedUsername = document.getElementById('usernameSelect').value;
-                    if (!selectedUsername) {
-                        alert('请先选择一个账号进行删除');
-                        return;
-                    }
-                    
-                    let storedAccounts = JSON.parse(localStorage.getItem('accounts')) || [];
-                    storedAccounts = storedAccounts.filter(account => account.username !== selectedUsername);
-                    localStorage.setItem('accounts', JSON.stringify(storedAccounts));
-                    loadSavedAccounts();
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-                    alert('账号已删除');
-                }
-                
-                                // 登录
-                                function login() {
-                                    const username = document.getElementById('username').value;
-                                    const password = document.getElementById('password').value;
-                                    const loginBtn = document.getElementById('loginBtn');
-                                    
-                                    // 禁用登录按钮
-                                    loginBtn.disabled = true;
-                                    loginBtn.textContent = '登录中...';
-                                    
-                                    // 发送POST请求
-                                    const xhr = new XMLHttpRequest();
-                                    xhr.open('POST', 'http://localhost:5233/courseware', true);
-                                    
-                                    // 设置请求头
-                                    xhr.setRequestHeader('Content-Type', 'application/json');
-                                    
-                                    // 处理响应
-                                    xhr.onload = function() {
-                                        if (xhr.status === 200) {
-                                            const response = JSON.parse(xhr.responseText);
-                                            if (response.status === 'success') {
-                                                alert('登录成功');
-                                                
-                                                // 保存当前登录的用户名到localStorage
-                                                localStorage.setItem('currentUser', username);
-                
-                                                // 保存账号和密码到localStorage中的一个专门的数组中
-                                                let storedAccounts = JSON.parse(localStorage.getItem('accounts')) || [];
-                                                const existingAccount = storedAccounts.find(account => account.username === username);
-                                                if (!existingAccount) {
-                                                    storedAccounts.push({ username: username, password: password });
-                                                    localStorage.setItem('accounts', JSON.stringify(storedAccounts));
-                                                }
-                
-                                                loadSavedAccounts();
-                                                window.close();
-                                            } else {
-                                                alert('处理失败：' + response.message);
-                                                // 恢复按钮状态
-                                                loginBtn.disabled = false;
-                                                loginBtn.textContent = '确定';
-                                            }
-                                        } else {
-                                            alert('请求失败，请检查账号密码，状态码：' + xhr.status);
-                                            // 恢复按钮状态
-                                            loginBtn.disabled = false;
-                                            loginBtn.textContent = '确定';
-                                        }
-                                    };
-                                    
-                                    xhr.onerror = function() {
-                                        alert('网络错误，请求失败，请检查软件服务是否开启');
-                                        // 恢复按钮状态
-                                        loginBtn.disabled = false;
-                                        loginBtn.textContent = '确定';
-                                    };
-                                    
-                                    // 发送数据
-                                    const data = { username: username, password: password };
-                                    xhr.send(JSON.stringify(data));
-                                }
-                
-                                // 页面加载时加载保存的账号
-                                window.onload = function() {
-                                    loadSavedAccounts();
-                                }
-                            </script>
-                        </body>
-                    </html>
-                `);     
-
-                // 确保在写入后关闭document.write
-                loginWindow.document.close();
             } else {
                 settings.doVideo = this.checked;
             }
         });
 
+        const notice = document.createElement('div');
 
+        // 创建ZERROR链接
+        const zerrorLink = document.createElement('a');
+        zerrorLink.textContent = ' ZError ';
+        zerrorLink.href = 'https://tiku.zerror.cc';
+        zerrorLink.style.fontWeight = 'bold';
+        zerrorLink.style.textDecoration = 'none';
+        zerrorLink.style.color = '#DAA520';
+        zerrorLink.target = '_blank';
 
+        // 创建官网链接
+        const websiteLink = document.createElement('a');
+        websiteLink.textContent = 'pages.zaizhexue.top';
+        websiteLink.href = 'https://pages.zaizhexue.top';
+        websiteLink.style.textDecoration = 'none';
+        websiteLink.style.color = '#DAA520';
+        websiteLink.target = '_blank';
+
+        notice.appendChild(document.createTextNode('由'));
+        notice.appendChild(zerrorLink);
+        notice.appendChild(document.createTextNode('提供题库支持，在浙学助手官网'));
+        notice.appendChild(websiteLink);
+
+        notice.style.border = '1px solid #FFE44D';
+        notice.style.backgroundColor = '#FFF8DC';
+        notice.style.padding = '10px';
+        notice.style.marginBottom = '10px';
+        notice.style.marginTop = '10px';
+        notice.style.borderRadius = '8px';
+        notice.style.fontSize = '14px';
+        notice.style.fontFamily = 'SmileySans-Oblique, sans-serif';
+        notice.style.color = '#DAA520';
+
+        displayArea.appendChild(DeepSeekProxyWrapper);
         displayArea.appendChild(DoVideoWrapper);
-
-
-
-        const apiSettingText = document.createElement('span');
-        apiSettingText.textContent = 'DeepSeek API Key';
-        apiSettingText.style.fontFamily = 'SmileySans-Oblique, sans-serif';
-        apiSettingText.style.fontSize = '14px';
-        apiSettingText.style.paddingBottom = '10px'; // 给文字和开关之间添加间距
-        const apiSettingText2 = document.createElement('span');
-        apiSettingText2.textContent = '(可选,用于AI解析)';
-        apiSettingText2.style.fontFamily = 'SmileySans-Oblique, sans-serif';
-        apiSettingText2.style.color = '#888';
-
-
-        const apiSettingContainer = document.createElement('div');
-        apiSettingContainer.setAttribute('id', 'apiSettingContainer');
-        apiSettingContainer.style.display = 'flex';
-        apiSettingContainer.style.alignContent = 'center';
-
-        const deepSeekApiKey = document.createElement('input');
-        deepSeekApiKey.type = 'text';
-        deepSeekApiKey.style.width = '100%';
-        deepSeekApiKey.style.padding = '8px';
-        deepSeekApiKey.style.marginRight = '4px';
-        deepSeekApiKey.style.boxSizing = 'border-box';
-        deepSeekApiKey.style.border = '2px solid #ccc';
-        deepSeekApiKey.style.borderRadius = '8px';
-        deepSeekApiKey.style.fontSize = '16px';
-        deepSeekApiKey.style.outline = 'none'; // 移除默认 outline，下面我们会自定义聚焦颜色
-        deepSeekApiKey.value = settings.deepseekApiKey;
-
-        // 添加聚焦时的样式变化
-        deepSeekApiKey.addEventListener('focus', () => {
-            deepSeekApiKey.style.border = '2px solid #4A90E2'; // 聚焦时改变边框颜色
-        });
-
-        deepSeekApiKey.addEventListener('blur', () => {
-            deepSeekApiKey.style.border = '2px solid #ccc'; // 失去焦点时恢复边框颜色
-        });
-
-        // 创建保存按钮
-        // 示例使用
-        const saveButton = createPushButton({
-            className: 'save-btn large',
-            text: '保存',
-            onClick: () => settings.deepseekApiKey = deepSeekApiKey.value,
-        });
-
-        apiSettingContainer.appendChild(deepSeekApiKey);
-        apiSettingContainer.appendChild(saveButton);
-
-
-
         displayArea.appendChild(examModeWrapper);
+        displayArea.appendChild(notice);
 
 
         applySwitchStyles();
@@ -1046,12 +860,10 @@ function loadUsername() {
                 // 检测当前域名是否为 www.zjooc.cn
                 if (window.location.hostname !== 'www.zjooc.cn') {
                     // 显示错误通知
-                    //displayErrorNotification('错误', ['请在浙学官网进行自动播放']);
-                    //打印 localstorage中的CourseChaptersZJLLL
                     console.log(localStorage.getItem('CourseChaptersZJLLL'));
                     displaySuccessNotification('该功能尚不完善', '如想为该功能优化做测试，请前往脚本官网联系开发者');
                     await autoPlayZJLLL();
-                }else{
+                } else {
                     if (!CourseChapters || Object.keys(CourseChapters).length === 0) {
                         CourseChapters = JSON.parse(localStorage.getItem('CourseChapters'));
                     }
@@ -1357,6 +1169,7 @@ function loadUsername() {
             notificationContainer.remove();
         }, 3000);
     }
+
     function displayErrorNotification(heading, details) {
         if (settings.examMode) {
             return;
@@ -1538,7 +1351,7 @@ function loadUsername() {
     }
 
     validateTokenWithRetry();  // 调用带有重试功能的验证函数
-    
+
 
     fixBlankPage();
 
@@ -1546,7 +1359,7 @@ function loadUsername() {
 
         const examModeCheckbox = document.getElementsByClassName('examMode')[0];
         console.log(examModeCheckbox);
-        if(!settings.examMode) {
+        if (!settings.examMode) {
             const result = await showConfirmDialog("开启后插件窗口将默认不显示！！！你可以您可以通过快捷键F9开关窗口，F2开关答案显示，所有提示弹窗提示也将不会显示。你确定要开启吗？");
             if (!result) {
                 console.log('取消开启');
@@ -1680,49 +1493,47 @@ function loadUsername() {
 
                     questions[index].appendChild(answerElement);
                     // 自动答题
-                 let answers = subject.rightAnswer.split(',');
+                    let answers = subject.rightAnswer.split(',');
 
-                 const common_test_options = questions[index].querySelectorAll('.common_test_option');
-                 if (common_test_options.length > 0) {
-                     console.log('开始答题');
- 
-                     answers.forEach((answer, index) => {
-                         let optionIndex;
- 
-                         // 根据 answer 的值决定点击哪个选项
-                         if (answer.toLowerCase() === 'yes') {
-                             optionIndex = 0; // 点击第一个选项
-                         } else if (answer.toLowerCase() === 'no') {
-                             optionIndex = 1; // 点击第二个选项
-                         } else if (/^[A-Za-z]$/.test(answer.trim())) {
-                             // 处理 A/B/C/D/E 等字母选项
-                             optionIndex = answer.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0);
-                         } else {
-                             console.log(`无效的答案：${answer}`);
-                             return; // 跳过无效答案
-                         }
- 
-                         if (optionIndex >= 0 && optionIndex < common_test_options.length) {
-                             const firstChild = common_test_options[optionIndex].firstElementChild; // 获取第一个子元素
-                             if (firstChild) {
-                                 // 使用 setTimeout 延迟点击
-                                 setTimeout(() => {
-                                     if (!firstChild.classList.contains('is-checked')) {
-                                         firstChild.click(); // 点击第一个子元素
-                                         console.log('点击了', firstChild);
-                                     }
-                                 }, index * 200); // 每次点击后延迟 200 毫秒
-                             } else {
-                                 console.log(`选项 ${answer} 没有子元素`);
-                             }
-                         } else {
-                             console.log(`无效的选项索引：${optionIndex}`);
-                         }
-                     });
-                 }
+                    const common_test_options = questions[index].querySelectorAll('.common_test_option');
+                    if (common_test_options.length > 0) {
+                        console.log('开始答题');
+
+                        answers.forEach((answer, index) => {
+                            let optionIndex;
+
+                            // 根据 answer 的值决定点击哪个选项
+                            if (answer.toLowerCase() === 'yes') {
+                                optionIndex = 0; // 点击第一个选项
+                            } else if (answer.toLowerCase() === 'no') {
+                                optionIndex = 1; // 点击第二个选项
+                            } else if (/^[A-Za-z]$/.test(answer.trim())) {
+                                // 处理 A/B/C/D/E 等字母选项
+                                optionIndex = answer.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0);
+                            } else {
+                                console.log(`无效的答案：${answer}`);
+                                return; // 跳过无效答案
+                            }
+
+                            if (optionIndex >= 0 && optionIndex < common_test_options.length) {
+                                const firstChild = common_test_options[optionIndex].firstElementChild; // 获取第一个子元素
+                                if (firstChild) {
+                                    // 使用 setTimeout 延迟点击
+                                    setTimeout(() => {
+                                        if (!firstChild.classList.contains('is-checked')) {
+                                            firstChild.click(); // 点击第一个子元素
+                                            console.log('点击了', firstChild);
+                                        }
+                                    }, index * 200); // 每次点击后延迟 200 毫秒
+                                } else {
+                                    console.log(`选项 ${answer} 没有子元素`);
+                                }
+                            } else {
+                                console.log(`无效的选项索引：${optionIndex}`);
+                            }
+                        });
+                    }
                 }
-
-                 
             }
         }
 
@@ -2249,36 +2060,30 @@ function loadUsername() {
         // 保存原始的open和send方法
         var originalOpen = XMLHttpRequest.prototype.open;
 
-
         // 重写open方法
         XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
             // 保存当前请求的URL信息
             const fullUrl = new URL(url, window.location.href); // 这会确保 URL 是完整的
 
-            // 检查是否为目标域名
-            if (fullUrl.hostname === 'www.zjooc.cn') {
-                // 将当前域名下的Cookie保存到localStorage
-                localStorage.setItem('www.zjooc.cn_cookies', document.cookie);
-                console.log('www.zjooc.cn_cookies', document.cookie);
-            }
-
-            // 初始化用于存储请求头的对象
-            this._requestHeaders = {};
-
-            // 重写setRequestHeader以捕获请求头
-            var originalSetRequestHeader = this.setRequestHeader.bind(this);
-            this.setRequestHeader = function (header, value) {
-                this._requestHeaders[header.toLowerCase()] = value;
-                originalSetRequestHeader(header, value);
-            };
-
             // 原有的事件监听逻辑
             this.addEventListener('load', async function () {
                 try {
-                    // 检查是否为 GET 请求
-                    
-                        const response = JSON.parse(this.responseText);
-                        if (response.data && response.data.paperSubjectList) {
+                    // 检查responseType，只处理文本类型的响应
+                    if (this.responseType && this.responseType !== '' && this.responseType !== 'text') {
+                        console.log('Response type is not text, skipping processing:', this.responseType);
+                        return;
+                    }
+
+                    // 检查响应是否为JSON格式
+                    if (!this.responseText || this.responseText.trim().startsWith('<')) {
+                        console.log('Response is not JSON format, skipping processing');
+                        return;
+                    }
+
+                    const response = JSON.parse(this.responseText);
+                    if (response.data) {
+
+                        if (response.data.paperSubjectList) {
                             cachedPaperSubjectList = response.data.paperSubjectList;
 
                             originalJson = response;
@@ -2300,7 +2105,7 @@ function loadUsername() {
                                     console.error('Error checking originalJson:', error);
                                 }
                             }
-                        
+                        }
 
                         // 处理特定service参数的请求
                         const urlParams = new URLSearchParams(fullUrl.search);
@@ -2309,90 +2114,96 @@ function loadUsername() {
                             localStorage.setItem('CourseChapters', JSON.stringify(CourseChapters));
                         }
 
-                        // 如果url符合https://course-center-detail.zjlll.cn/api/s-course/stu/chapter/tree/也将其保存在localstorage中
-                        if (fullUrl.href.includes('https://course-center-detail.zjlll.cn/api/s-course/stu/chapter/tree/')) {
-                            const CourseChapters = JSON.parse(this.responseText);
-                            localStorage.setItem('CourseChaptersZJLLL', JSON.stringify(CourseChapters));
-                        }
-
                     }
                 } catch (e) {
-                    console.log('Error processing response:', e);
+                    console.error('Error processing response:', e);
+                    if (e instanceof SyntaxError && e.message.includes('JSON')) {
+                        console.error('JSON解析错误，响应可能不是有效的JSON格式');
+                        console.log('Response text:', this.responseText.substring(0, 200) + '...');
+                    }
                 }
             });
 
             originalOpen.apply(this, arguments);
         };
 
-        // 重写send方法以捕获请求体
-        // XMLHttpRequest.prototype.send = function (data) {
-        //     // 检查Content-Type是否为application/x-www-form-urlencoded
-        //     const contentType = this._requestHeaders['content-type'] || '';
-        //     if (contentType.toLowerCase() === 'application/x-www-form-urlencoded' && data) {
-        //         // 解析请求体
-        //         const params = new URLSearchParams(data);
-        //         if (params.has('login_name')) {
-        //             // 转发请求到指定URL
-        //             const newUrl = 'http://localhost:5233/courseware';
-        //             const newRequest = new XMLHttpRequest();
-        //             newRequest.open(this.method, newUrl, this.async, this._user, this._password);
-        //             newRequest.withCredentials = this.withCredentials;
-
-        //             // 复制请求头
-        //             for (const header in this._requestHeaders) {
-        //                 if (this._requestHeaders.hasOwnProperty(header)) {
-        //                     newRequest.setRequestHeader(header, this._requestHeaders[header]);
-        //                 }
-        //             }
-
-        //             // 发送数据
-        //             newRequest.send(data);
-
-        //             console.log('Forwarding request to courseware:', newUrl);
-        //         }
-        //     }
-
-        //     // 调用原始send方法
-        //     originalSend.apply(this, arguments);
-        // };
     })(XMLHttpRequest.prototype.open, XMLHttpRequest.prototype.send);
 
 
-
     // Monitor fetch requests
-    const originalFetch = window.fetch;
-    window.fetch = async function (input, init) {
-        // 检测请求头是否包含 Accept: text/event-stream
-        const isStreamRequest = checkStreamByAcceptHeader(init);
+    (function (originalFetch) {
+        // 重写 fetch 方法以拦截请求和响应
+        window.fetch = async function (input, init) {
+            try {
+                // 记录请求信息到控制台
+                console.log('Fetch Request Sent: ', input, init);
 
-        if (isStreamRequest) {
-            // 流请求直接使用原生fetch，不拦截
-            return originalFetch(input, init);
-        }
+                // 发送原始请求
+                const response = await originalFetch(input, init);
+                const clonedResponse = response.clone();
 
-        // 非流请求继续原有逻辑
-        console.log('Fetch Request Sent: ', input, init);
-        const response = await originalFetch(input, init);
-        try {
-            const data = await response.clone().json();
-            if (data.data?.paperSubjectList) {
-                console.log('paperSubjectList:', data.data.paperSubjectList);
-                cachedPaperSubjectList = data.data.paperSubjectList;
+                // 异步处理响应数据
+                clonedResponse.text().then(text => {
+                    // 检查响应是否为JSON格式
+                    if (!text || text.trim().startsWith('<')) {
+                        console.log('Fetch response is not JSON format, skipping processing');
+                        return;
+                    }
+
+                    const data = JSON.parse(text);
+                    try {
+                        // 缓存试卷题目列表
+                        if (data.data?.paperSubjectList) {
+                            console.log('paperSubjectList:', data.data.paperSubjectList);
+                            cachedPaperSubjectList = data.data.paperSubjectList;
+                        }
+
+                        // 处理课程章节数据
+                        const url = input instanceof Request ? input.url : input;
+                        const urlParams = new URLSearchParams(url);
+
+                        // 保存教学系统课程章节
+                        if (urlParams.get('service') === '/jxxt/api/course/courseStudent/getStudentCourseChapters') {
+                            localStorage.setItem('CourseChapters', JSON.stringify(data));
+                        }
+
+                        // 移除学生姓名信息
+                        if (data.data?.hasOwnProperty('stuName')) {
+                            delete data.data.stuName;
+                        }
+
+                        // 处理正确答案
+                        if (checkRightAnswer(data)) {
+                            localStorage.setItem('originalJsonCopy', JSON.stringify(data));
+                            const paperId = data.data.id;
+
+                            // 检查并上传原始JSON
+                            fetchOriginalJson(paperId, false)
+                                .then(response => {
+                                    if (response?.has_original_json) {
+                                        console.log('试卷数据已存在');
+                                    } else {
+                                        console.log('未找到试卷数据，开始上传...');
+                                        uploadOriginalJson();
+                                    }
+                                })
+                                .catch(error => console.error('检查原始JSON出错:', error));
+                        }
+                    } catch (error) {
+                        console.error('处理响应数据时出错:', error);
+                    }
+                }).catch(error => {
+                    console.error('解析响应文本时出错:', error);
+                });
+
+                return response;
+            } catch (error) {
+                console.error('Fetch请求出错:', error);
+                throw error;
             }
-            return response;
-        } catch {
-            return response;
-        }
-    };
+        };
+    })(window.fetch);
 
-    // 检查请求头中是否包含 Accept: text/event-stream
-    function checkStreamByAcceptHeader(init) {
-        if (!init?.headers) return false;
-
-        // 统一处理 Headers 对象（兼容不同格式）
-        const headers = new Headers(init.headers);
-        return headers.get('Accept') === 'text/event-stream';
-    }
 
     function initializeEditorSync() {
         // 检查是否加载了 CKEditor
@@ -2572,6 +2383,8 @@ function loadUsername() {
             toggleModifiedElements();
         }
     }
+
+
 
 
 })();

@@ -5,9 +5,8 @@ class Settings {
     static STORAGE_KEY_SPEED = 'video_speed';
     static STORAGE_KEY_EXAM_MODE = 'exam_mode';
     static STORAGE_KEY_USERNAME = 'username';
+    static STORAGE_KEY_USER_ID = 'user_id';
     static STORAGE_KEY_CREATE_TIME = 'create_time';
-    static STORAGE_KEY_DEEPSEEK_API_KEY = 'deepseek_api_key';
-    static STORAGE_KEY_DEEPSEEKPROXY = 'deepseekproxy';
     static STORAGE_KEY_DO_VIDEO = 'do_video';
     
     static get createTime() {
@@ -16,32 +15,11 @@ class Settings {
     static set createTime(value) {
       localStorage.setItem(this.STORAGE_KEY_CREATE_TIME, value);
     }
-    // DeepSeek API Key
-    static get deepseekApiKey() {
-        return localStorage.getItem(this.STORAGE_KEY_DEEPSEEK_API_KEY) || '';
-    }
 
-    static set deepseekApiKey(value) {
-        localStorage.setItem(this.STORAGE_KEY_DEEPSEEK_API_KEY, value);
-    }
-
-   // DeepSeek Proxy
-    static get deepseekProxy() {
-      // 获取本地存储的值并解析为布尔类型
-      const value = localStorage.getItem(this.STORAGE_KEY_DEEPSEEKPROXY);
-      return value === 'true'; // 如果是字符串 "true" 则返回 true，否则返回 false
-    }
-
-    static set deepseekProxy(value) {
-      // 将传入的值转换为字符串，并存入本地存储
-      localStorage.setItem(this.STORAGE_KEY_DEEPSEEKPROXY, value.toString());
-    }
-
-    // 直接访问 DoVideo
-    static get doVideo() {
+    static get speedRun() {
       return localStorage.getItem(this.STORAGE_KEY_DO_VIDEO) === 'true';
     }
-    static set doVideo(value) {
+    static set speedRun(value) {
       localStorage.setItem(this.STORAGE_KEY_DO_VIDEO, value.toString());
     }
 
@@ -51,6 +29,17 @@ class Settings {
     }
     static set username(value) {
       localStorage.setItem(this.STORAGE_KEY_USERNAME, value);
+    }
+
+    static get userId() {
+      return localStorage.getItem(this.STORAGE_KEY_USER_ID);
+    }
+    static set userId(value) {
+      if (value == null || value === '') {
+        localStorage.removeItem(this.STORAGE_KEY_USER_ID);
+        return;
+      }
+      localStorage.setItem(this.STORAGE_KEY_USER_ID, String(value));
     }
   
     // 直接访问 token

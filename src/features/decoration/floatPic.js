@@ -1,5 +1,5 @@
-import Matter from './matter.min.js';
-import { imageData } from './imageBase64.js';
+import Matter from '../../assets/matter.min.js';
+import { imageData } from '../../assets/imageBase64.js';
 export default function createFloatingImageWorld(imageKey = 'defaultImage') {
     const imageSrc = imageData[imageKey];
     const engine = Matter.Engine.create({
@@ -13,7 +13,26 @@ export default function createFloatingImageWorld(imageKey = 'defaultImage') {
     // 存储清理函数需要的引用
     let runner;
     let floatingImage;
+    let floatingImg;
+    let mouse;
     let mouseConstraint;
+    let stopped = false;
+    const mouseEvents = ['mousemove', 'mousedown', 'mouseup', 'mousewheel', 'DOMMouseScroll', 'touchmove', 'touchstart', 'touchend'];
+    const mouseHandler = (event) => {
+        if (!mouse) return null;
+        if (event === 'touchmove') return mouse.mousemove;
+        if (event === 'touchstart') return mouse.mousedown;
+        if (event === 'touchend') return mouse.mouseup;
+        if (event === 'DOMMouseScroll') return mouse.mousewheel;
+        return mouse[event];
+    };
+    const detachMouse = (events) => {
+        if (!mouse) return;
+        events.forEach(event => {
+            const handler = mouseHandler(event);
+            if (handler) mouse.element.removeEventListener(event, handler);
+        });
+    };
 
     // 设置窗口边界
     const createWalls = () => {
@@ -53,6 +72,7 @@ export default function createFloatingImageWorld(imageKey = 'defaultImage') {
         img.addEventListener('dragstart', (e) => e.preventDefault());
         img.addEventListener('contextmenu', (e) => e.preventDefault());
         
+        floatingImg = img;
         document.body.appendChild(img);
         console.log('已经创建图片标签');
         // 等待图片加载完成后创建物理实体
@@ -111,11 +131,13 @@ export default function createFloatingImageWorld(imageKey = 'defaultImage') {
         try {
             // 添加图片（等待加载完成）
             const imageBody = await createFloatingImage(imageSrc);
+            if (stopped) return;
             floatingImage = imageBody;  // 保存引用
             Matter.World.add(world, imageBody);
     
-            // 添加鼠标控制（可选）
-            const mouse = Matter.Mouse.create(document.body);
+            // 添加鼠标控制（可选），滚轮不需要，去掉避免拦截页面滚动
+            mouse = Matter.Mouse.create(document.body);
+            detachMouse(['mousewheel', 'DOMMouseScroll']);
             mouseConstraint = Matter.MouseConstraint.create(engine, { mouse });
             Matter.World.add(world, mouseConstraint);
     
@@ -127,10 +149,14 @@ export default function createFloatingImageWorld(imageKey = 'defaultImage') {
     };
     // 添加停止函数
     const stop = () => {
+        if (stopped) return;
+        stopped = true;
+
         // 停止物理引擎
         if (runner) {
             Matter.Runner.stop(runner);
         }
+        Matter.Events.off(engine);
     
         // 移除所有物体
         if (floatingImage) {
@@ -142,30 +168,17 @@ export default function createFloatingImageWorld(imageKey = 'defaultImage') {
         Matter.World.remove(world, currentWalls);
     
         // 移除所有事件监听器
+        detachMouse(mouseEvents);
         window.removeEventListener('resize', updateWalls);
-        window.removeEventListener('load', init);
     
-        // 移除DOM中的图片元素
-        const images = document.querySelectorAll('img');
-        images.forEach(img => {
-            if (img.style.position === 'fixed' && img.style.zIndex === '9999') {
-                img.remove();
-            }
-        });
+        // 移除自己创建的图片元素
+        if (floatingImg) {
+            floatingImg.remove();
+        }
     };
-    // 移除 load 事件监听，直接调用初始化
     init().catch(error => console.error('初始化过程出错:', error));
-    // 窗口大小变化处理
-    window.addEventListener('resize', () => {
-        // 更新边界
-        updateWalls();
-        console.log('已经更新边界');
-        // 重新设置渲染器尺寸
-        document.body.style.width = window.innerWidth + 'px';
-        document.body.style.height = window.innerHeight + 'px';
-    });
-    // 等待图片加载
-    window.addEventListener('load', init);
+    // 窗口大小变化时更新边界
+    window.addEventListener('resize', updateWalls);
     // 返回停止函数供外部使用
     return stop;
 }

@@ -14,7 +14,7 @@ export function showConfirmDialog(message, title = "是否确认开启") {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.36);
             z-index: 9999999;
         `;
         document.body.appendChild(overlay);
@@ -25,10 +25,14 @@ export function showConfirmDialog(message, title = "是否确认开启") {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: white;
+            color: #1d1d1f;
+            background: rgba(255, 255, 255, 0.72);
+            -webkit-backdrop-filter: blur(24px) saturate(180%);
+            backdrop-filter: blur(24px) saturate(180%);
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.55);
             z-index: 10000000000000;
             width: 400px;
         `;

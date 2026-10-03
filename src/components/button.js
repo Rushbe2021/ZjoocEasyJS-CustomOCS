@@ -1,4 +1,5 @@
-import Settings from "../settings";
+import Settings from "../core/settings.js";
+import { syncUserAvatar } from "../ui/userAvatar.js";
 function createButton(text = 'Get started', onClick = () => { }) {
     // 添加样式（确保只添加一次）
     if (!createButton.styleAdded) {
@@ -197,7 +198,7 @@ async function getVerificationCode() {
     }
 }
 
-function pollLogin(verificationCode,LoggedWarpper) {
+function pollLogin(verificationCode, loginState) {
     const url = 'https://app.zaizhexue.top/polling';
     let attempts = 0;
 
@@ -222,7 +223,7 @@ function pollLogin(verificationCode,LoggedWarpper) {
 
             if (data.logged_in) {
                 // 如果登录成功，返回用户信息
-                LoggedWarpper.Logged = true;
+                loginState.logged = true;
                 return data.user;
             ;
             }
@@ -256,6 +257,7 @@ function pollLogin(verificationCode,LoggedWarpper) {
 
             }
             Settings.username = user.nickname;
+            await syncUserAvatar(user);
             const createTime = document.getElementById('createTime');
             const userCreatedTime = new Date(user.createdTime);
             const month = userCreatedTime.getMonth() + 1;  // getMonth 返回 0 到 11，所以需要加 1
@@ -263,9 +265,7 @@ function pollLogin(verificationCode,LoggedWarpper) {
             const year = userCreatedTime.getFullYear();
             const formattedDate = `${month}/${day}/${year}`;
             if (createTime) {
-
-                createTime.innerHTML = formattedDate + '注册';
-                
+                createTime.textContent = formattedDate;
             }
             Settings.createTime = formattedDate;
             const userInfoContainer = document.getElementById('userInfoContainer');
@@ -281,7 +281,7 @@ function pollLogin(verificationCode,LoggedWarpper) {
 createButton.styleAdded = false;
 
 // 状态切换函数
-async function toggleButtonState(button, isLoading = true, LoggedWarpper) {
+async function toggleButtonState(button, isLoading = true, loginState) {
     const iconContainer = button.querySelector('.icon');
     if (!iconContainer) return;
 
@@ -308,9 +308,9 @@ async function toggleButtonState(button, isLoading = true, LoggedWarpper) {
     console.log('切换状态');
     const code = await getVerificationCode();
     iconContainer.innerHTML = `<div class="VerificationCode">${code}<div>`;
-    LoggedWarpper.code = code;
+    loginState.code = code;
     button.disabled = true;
-    pollLogin(code,LoggedWarpper);
+    pollLogin(code, loginState);
 
 }
 

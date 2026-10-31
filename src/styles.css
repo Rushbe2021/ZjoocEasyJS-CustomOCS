@@ -925,3 +925,40 @@ a.ze-tiku-credit-brand:hover {
 #scriptWindow:hover .ze-resize-handle {
     opacity: 0.9;
 }
+
+/* 设置页操作区 */
+.ze-settings-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 89%;
+    margin: 16px 0 4px;
+}
+
+.ze-settings-button {
+    padding: 8px;
+    border: 0;
+    border-radius: 8px;
+    background: #e8e8e8;
+    color: #1d1d1f;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ze-settings-button:hover {
+    background: #dcdcdc;
+}
+
+.ze-settings-button:active {
+    transform: scale(0.98);
+}
+
+.ze-settings-button.is-danger {
+    background: #fdecea;
+    color: #c0392b;
+}
+
+.ze-settings-button.is-danger:hover {
+    background: #fbd9d5;
+}

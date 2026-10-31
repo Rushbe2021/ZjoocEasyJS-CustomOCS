@@ -601,6 +601,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         // 创建“视频静音”按钮
         const examModeLabel = document.createElement('label');
         examModeLabel.classList.add('switch');
+        examModeLabel.style.marginLeft = 'auto';
 
         const examModeCheckbox = document.createElement('input');
         examModeCheckbox.type = 'checkbox';
@@ -616,14 +617,15 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         const examModeText = document.createElement('span');
         examModeText.textContent = '考试模式';
         examModeText.style.whiteSpace = 'nowrap';
-        examModeText.style.marginRight = '112px'; // 给文字和开关之间添加间距
+        examModeText.style.marginRight = '0px'; // 由 flex 间距控制
 
         // 包装文字和静音开关的容器
         const examModeWrapper = document.createElement('div');
         examModeWrapper.style.display = 'flex';
-        examModeWrapper.style.width = '89%'; // 宽度设置为100%
+        examModeWrapper.style.width = '100%';
         examModeWrapper.style.alignItems = 'center'; // 对齐方式设置为垂直居中
         examModeWrapper.style.justifyContent = 'flex-start'; // 靠左对齐
+        examModeWrapper.style.gap = '8px';
         examModeWrapper.style.marginTop = '8px'; // 添加上方间隔
         examModeWrapper.style.marginBottom = '0px'; // 添加下方间隔
         examModeWrapper.appendChild(examModeText);
@@ -639,6 +641,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         // 创建“课件速刷”开关
         const DoVideoLabel = document.createElement('label');
         DoVideoLabel.classList.add('switch');
+        DoVideoLabel.style.marginLeft = 'auto';
 
         const DoVideoCheckbox = document.createElement('input');
         DoVideoCheckbox.type = 'checkbox';
@@ -661,11 +664,12 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         const DoVideoWrapper = document.createElement('div');
         DoVideoWrapper.setAttribute('id', 'DoVideoWrapper');
         DoVideoWrapper.style.display = 'flex';
-        DoVideoWrapper.style.width = '89%'; // 宽度设置为100%
+        DoVideoWrapper.style.width = '100%';
         DoVideoWrapper.style.alignItems = 'center'; // 对齐方式设置为垂直居中
         DoVideoWrapper.style.justifyContent = 'flex-start'; // 靠左对齐
         DoVideoWrapper.style.marginBottom = '0px'; // 添加下方间隔
         DoVideoWrapper.style.marginTop = '8px'; // 添加下方间隔
+        DoVideoWrapper.style.gap = '8px';
         DoVideoWrapper.appendChild(DoVideoText);
         const questionMark2 = document.createElement('div');
         questionMark2.addEventListener('click', () => {
@@ -674,7 +678,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         questionMark2.classList.add('question-mark');
         questionMark2.innerHTML = '<svg t="1741083582512" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5218" width="20" height="20"><path d="M512 981.3C253.2 981.3 42.7 770.8 42.7 512S253.2 42.7 512 42.7 981.3 253.2 981.3 512 770.8 981.3 512 981.3z m0-853.3c-211.7 0-384 172.3-384 384s172.3 384 384 384 384-172.3 384-384-172.3-384-384-384z" fill="#BDBDBD" p-id="5219"></path><path d="M512 640c-23.6 0-42.7-19.1-42.7-42.7 0-53.5 28.7-101.8 74.8-126.2 22.9-12.1 42.6-40.4 35.1-76.2-5.4-25.7-26.2-46.6-51.9-51.9-21.4-4.5-42.3 0.4-58.7 13.8-16.2 13.2-25.5 32.6-25.5 53.5 0 23.6-19.1 42.7-42.7 42.7s-42.7-19.1-42.7-42.7c0-46.6 20.8-90.2 57-119.7 36.2-29.4 83.6-40.8 129.9-31.1 58.4 12.2 105.9 59.6 118.1 118.1 14.3 68.6-17.3 136.6-78.8 169-18.1 9.6-29.4 29.1-29.4 50.8 0.2 23.5-18.9 42.6-42.5 42.6z" fill="#BDBDBD" p-id="5220"></path><path d="M512 725.3m-42.7 0a42.7 42.7 0 1 0 85.4 0 42.7 42.7 0 1 0-85.4 0Z" fill="#BDBDBD" p-id="5221"></path></svg>';
         questionMark2.style.marginLeft = '4px';
-        questionMark2.style.marginRight = '88px';
+        questionMark2.style.marginRight = '8px';
         DoVideoWrapper.appendChild(questionMark2);
         DoVideoWrapper.appendChild(DoVideoLabel);
 
@@ -999,6 +1003,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         // 创建“视频静音”按钮
         const muteLabel = document.createElement('label');
         muteLabel.classList.add('switch');
+        muteLabel.style.marginLeft = 'auto';
 
         const muteCheckbox = document.createElement('input');
         muteCheckbox.type = 'checkbox';
@@ -1013,14 +1018,15 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         // 创建静音文本
         const muteText = document.createElement('span');
         muteText.textContent = '视频静音';
-        muteText.style.marginRight = '10px'; // 给文字和开关之间添加间距
+        muteText.style.marginRight = '0px'; // 由 flex 间距控制
 
         // 包装文字和静音开关的容器
         const muteWrapper = document.createElement('div');
         muteWrapper.style.display = 'flex';
-        muteWrapper.style.width = '89%'; // 宽度设置为100%
+        muteWrapper.style.width = '100%'; // 与按钮和其他控件对齐
         muteWrapper.style.alignItems = 'center'; // 对齐方式设置为垂直居中
         muteWrapper.style.justifyContent = 'flex-start'; // 靠左对齐
+        muteWrapper.style.gap = '8px';
         muteWrapper.style.marginBottom = '0px'; // 添加下方间隔
         muteWrapper.appendChild(muteText);
         muteWrapper.appendChild(muteLabel);

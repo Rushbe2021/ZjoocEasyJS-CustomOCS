@@ -253,8 +253,8 @@ a.ze-tiku-credit-brand:hover {
     outline: none;
     box-shadow: none;
     border-radius: 10px;
-    margin-left: 10px;
-    margin-right: 10px;
+    width: 100%;
+    box-sizing: border-box;
     background: #e8e8e8;
     color: #1d1d1f;
     font-weight: 700;
@@ -388,7 +388,7 @@ a.ze-tiku-credit-brand:hover {
     flex: 1;
     min-width: 0;
     min-height: 0;
-    padding: 10px 6px 10px 10px;
+    padding: 10px;
     overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: thin;
@@ -627,11 +627,12 @@ a.ze-tiku-credit-brand:hover {
 }
 
 .body-container {
+    width: 100%;
+    box-sizing: border-box;
     place-items: left;
     align-content: left;
     font-family: "SF Pro Text", "SF Pro Icons", "AOS Icons", "Helvetica Neue",
         Helvetica, Arial, sans-serif, system-ui;
-
 }
 
 .radio-input {
@@ -737,7 +738,8 @@ a.ze-tiku-credit-brand:hover {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 89%;
+    width: 100%;
+    box-sizing: border-box;
     gap: 8px;
 }
 
@@ -931,7 +933,8 @@ a.ze-tiku-credit-brand:hover {
     display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
-    width: 89%;
+    width: 100%;
+    box-sizing: border-box;
     margin: 16px 0 4px;
 }
 
@@ -1029,13 +1032,26 @@ a.ze-tiku-credit-brand:hover {
 .ze-confirm-button {
     padding: 8px 16px;
     border: 0;
-    border-radius: 8px;
+    border-radius: 0;
     background: #e8e8e8;
     color: #1d1d1f;
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+}
+
+.ze-confirm-modal .ze-confirm-button {
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.ze-confirm-modal .ze-confirm-button.is-primary,
+.ze-confirm-modal .ze-confirm-button.is-primary:hover {
+    background: #2ba8fb !important;
+    background-color: #2ba8fb !important;
+    background-image: none !important;
+    color: #fff !important;
 }
 
 .ze-confirm-button:hover {

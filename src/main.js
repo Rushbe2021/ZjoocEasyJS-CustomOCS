@@ -70,6 +70,39 @@ import { testAnswerers } from './features/answers/answerer.js';
     const windowDiv = document.createElement('div');
     windowDiv.id = 'scriptWindow';
 
+    const MIN_WINDOW_WIDTH = 260;
+    const MIN_WINDOW_HEIGHT = 300;
+    const DEFAULT_WINDOW_SIZE = { width: 300, height: 400 };
+
+    function clampWindowSize(width, height) {
+        const maxWidth = Math.max(MIN_WINDOW_WIDTH, window.innerWidth);
+        const maxHeight = Math.max(MIN_WINDOW_HEIGHT, window.innerHeight);
+        return {
+            width: Math.round(
+                Math.min(
+                    Math.max(MIN_WINDOW_WIDTH, Number(width) || DEFAULT_WINDOW_SIZE.width),
+                    maxWidth
+                )
+            ),
+            height: Math.round(
+                Math.min(
+                    Math.max(MIN_WINDOW_HEIGHT, Number(height) || DEFAULT_WINDOW_SIZE.height),
+                    maxHeight
+                )
+            ),
+        };
+    }
+
+    function applyWindowSize(width, height, persist = false) {
+        const next = clampWindowSize(width, height);
+        windowDiv.style.width = `${next.width}px`;
+        windowDiv.style.height = `${next.height}px`;
+        if (persist) {
+            settings.size = next;
+        }
+        return next;
+    }
+
     function clampWindowPosition(left, top) {
         const width = windowDiv.offsetWidth || 300;
         const height = windowDiv.offsetHeight || 400;
@@ -90,6 +123,9 @@ import { testAnswerers } from './features/answers/answerer.js';
         }
         return next;
     }
+
+    const storedSize = settings.size || DEFAULT_WINDOW_SIZE;
+    applyWindowSize(storedSize.width, storedSize.height);
 
     const storedPosition = settings.position || { left: 10, top: 10 };
     windowDiv.style.left = `${storedPosition.left ?? 10}px`;
@@ -216,6 +252,13 @@ import { testAnswerers } from './features/answers/answerer.js';
     contentDiv.appendChild(displayArea);
     windowDiv.appendChild(header);
     windowDiv.appendChild(contentDiv);
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'ze-resize-handle';
+    resizeHandle.title = '拖动调整窗口大小';
+    resizeHandle.setAttribute('aria-label', '调整窗口大小');
+    windowDiv.appendChild(resizeHandle);
+
     windowRoot.appendChild(windowDiv);
     document.body.appendChild(windowRoot);
     applyWindowPosition(windowDiv.offsetLeft, windowDiv.offsetTop);
@@ -228,6 +271,7 @@ import { testAnswerers } from './features/answers/answerer.js';
         if (!isMinimized) {
             contentDiv.style.display = 'none';
             windowDiv.style.height = '50px';
+            resizeHandle.style.display = 'none';
             minimizeButton.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
               <path d="M0 0h24v24H0V0z" fill="none"></path>
@@ -236,7 +280,9 @@ import { testAnswerers } from './features/answers/answerer.js';
       `;
         } else {
             contentDiv.style.display = 'flex';
-            windowDiv.style.height = '400px';
+            const restored = applyWindowSize(windowDiv.offsetWidth, settings.size.height);
+            windowDiv.style.height = `${restored.height}px`;
+            resizeHandle.style.display = '';
             minimizeButton.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24">
               <path d="M0 0h24v24H0V0z" fill="none"></path>
@@ -278,13 +324,62 @@ import { testAnswerers } from './features/answers/answerer.js';
         applyWindowPosition(windowDiv.offsetLeft, windowDiv.offsetTop, true);
     }
 
-    window.addEventListener('resize', () => {
-        applyWindowPosition(windowDiv.offsetLeft, windowDiv.offsetTop, true);
+    // 右下角缩放
+    let isResizing = false;
+    let resizeStartX = 0;
+    let resizeStartY = 0;
+    let resizeStartWidth = 0;
+    let resizeStartHeight = 0;
+
+    resizeHandle.addEventListener('mousedown', (e) => {
+        if (isMinimized) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+        resizeStartWidth = windowDiv.offsetWidth;
+        resizeStartHeight = windowDiv.offsetHeight;
+        document.body.style.userSelect = 'none';
+        document.addEventListener('mousemove', onResizeMove);
+        document.addEventListener('mouseup', onResizeUp);
     });
+
+    function onResizeMove(e) {
+        if (!isResizing) {
+            return;
+        }
+        applyWindowSize(
+            resizeStartWidth + (e.clientX - resizeStartX),
+            resizeStartHeight + (e.clientY - resizeStartY)
+        );
+    }
+
+    function onResizeUp() {
+        if (!isResizing) {
+            return;
+        }
+        isResizing = false;
+        document.removeEventListener('mousemove', onResizeMove);
+        document.removeEventListener('mouseup', onResizeUp);
+        document.body.style.userSelect = '';
+        applyWindowSize(windowDiv.offsetWidth, windowDiv.offsetHeight, true);
+        applyWindowPosition(windowDiv.offsetLeft, windowDiv.offsetTop, true);
+    }
+
+    function syncWindowToViewport() {
+        if (!isMinimized) {
+            const stored = settings.size;
+            applyWindowSize(stored.width, stored.height);
+        }
+        applyWindowPosition(windowDiv.offsetLeft, windowDiv.offsetTop, true);
+    }
+
+    window.addEventListener('resize', syncWindowToViewport);
     if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-            applyWindowPosition(windowDiv.offsetLeft, windowDiv.offsetTop, true);
-        });
+        window.visualViewport.addEventListener('resize', syncWindowToViewport);
     }
 
     function toggleMute() {

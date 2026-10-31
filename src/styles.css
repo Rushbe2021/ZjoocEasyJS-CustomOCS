@@ -1030,9 +1030,14 @@ a.ze-tiku-credit-brand:hover {
 }
 
 .ze-confirm-button {
-    padding: 8px 16px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
     border: 0;
-    border-radius: 0;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: #e8e8e8;
     color: #1d1d1f;
     font-family: inherit;
@@ -1042,7 +1047,7 @@ a.ze-tiku-credit-brand:hover {
 }
 
 .ze-confirm-modal .ze-confirm-button {
-    border-radius: 0;
+    border-radius: 8px;
     box-shadow: none;
 }
 

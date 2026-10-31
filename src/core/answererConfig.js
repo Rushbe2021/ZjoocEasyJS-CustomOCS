@@ -1,3 +1,5 @@
+import { deleteConfig, getConfig, setConfig } from './gmStorage.js';
+
 const STORAGE_KEY = 'ze_answerer_wrappers';
 
 const CONTENT_TYPES = ['json', 'text'];
@@ -65,12 +67,12 @@ export function validateAnswerers(value) {
 }
 
 export function loadAnswerers() {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = getConfig(STORAGE_KEY, '');
     if (!raw) {
         return [];
     }
     try {
-        return validateAnswerers(JSON.parse(raw));
+        return validateAnswerers(typeof raw === 'string' ? JSON.parse(raw) : raw);
     } catch (error) {
         console.warn('[ZE题库] 本地配置无效，已忽略：', error.message);
         return [];
@@ -79,16 +81,16 @@ export function loadAnswerers() {
 
 export function saveAnswerers(value) {
     const validated = validateAnswerers(value);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(validated));
+    setConfig(STORAGE_KEY, JSON.stringify(validated));
     return validated;
 }
 
 export function clearAnswerers() {
-    localStorage.removeItem(STORAGE_KEY);
+    deleteConfig(STORAGE_KEY);
 }
 
 export function getAnswerersRaw() {
-    return localStorage.getItem(STORAGE_KEY) || '';
+    return getConfig(STORAGE_KEY, '') || '';
 }
 
 export function fromJSONString(text) {

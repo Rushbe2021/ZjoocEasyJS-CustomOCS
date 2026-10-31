@@ -1,3 +1,5 @@
+import { getConfig, setConfig } from './gmStorage.js';
+
 class Settings {
     static STORAGE_KEY_POSITION = 'floating_window_position';
     static STORAGE_KEY_SIZE = 'floating_window_size';
@@ -8,26 +10,36 @@ class Settings {
     static DEFAULT_SIZE = { width: 300, height: 400 };
 
     static get speedRun() {
-      return localStorage.getItem(this.STORAGE_KEY_DO_VIDEO) === 'true';
+      return getConfig(this.STORAGE_KEY_DO_VIDEO, 'false') === 'true';
     }
     static set speedRun(value) {
-      localStorage.setItem(this.STORAGE_KEY_DO_VIDEO, value.toString());
+      setConfig(this.STORAGE_KEY_DO_VIDEO, value.toString());
     }
 
     // 直接访问浮动窗口位置
     static get position() {
-      const position = localStorage.getItem(this.STORAGE_KEY_POSITION);
-      return position ? JSON.parse(position) : { left: 0, top: 0 }; // 默认位置
+      const raw = getConfig(this.STORAGE_KEY_POSITION, null);
+      if (!raw) {
+        return { left: 0, top: 0 }; // 默认位置
+      }
+      try {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return parsed && typeof parsed === 'object' ? parsed : { left: 0, top: 0 };
+      } catch (error) {
+        console.warn('[ZE窗口] 位置配置无效，已使用默认值', error);
+        return { left: 0, top: 0 };
+      }
     }
   
     static set position(value) {
-      localStorage.setItem(this.STORAGE_KEY_POSITION, JSON.stringify(value));
+      setConfig(this.STORAGE_KEY_POSITION, JSON.stringify(value));
     }
 
     // 浮动窗口尺寸
     static get size() {
+      const raw = getConfig(this.STORAGE_KEY_SIZE, null);
       try {
-        const parsed = JSON.parse(localStorage.getItem(this.STORAGE_KEY_SIZE) || 'null');
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
         if (parsed && Number.isFinite(parsed.width) && Number.isFinite(parsed.height)) {
           return {
             width: Math.max(1, parsed.width),
@@ -41,7 +53,7 @@ class Settings {
     }
 
     static set size(value) {
-      localStorage.setItem(
+      setConfig(
         this.STORAGE_KEY_SIZE,
         JSON.stringify({
           width: Math.max(1, Number(value.width) || this.DEFAULT_SIZE.width),
@@ -52,29 +64,29 @@ class Settings {
   
     // 直接访问视频倍速
     static get speed() {
-      return localStorage.getItem(this.STORAGE_KEY_SPEED) || "1"; // 默认倍速为1.0
+      return getConfig(this.STORAGE_KEY_SPEED, '1') || '1'; // 默认倍速为1.0
     }
   
     static set speed(value) {
-      localStorage.setItem(this.STORAGE_KEY_SPEED,  String(value));
+      setConfig(this.STORAGE_KEY_SPEED, String(value));
     }
   
     // 直接访问是否静音
     static get mute() {
-      return localStorage.getItem(this.STORAGE_KEY_MUTE) === 'true';
+      return getConfig(this.STORAGE_KEY_MUTE, 'false') === 'true';
     }
   
     static set mute(value) {
-      localStorage.setItem(this.STORAGE_KEY_MUTE, value.toString());
+      setConfig(this.STORAGE_KEY_MUTE, value.toString());
     }
   
     // 直接访问考试模式
     static get examMode() {
-      return localStorage.getItem(this.STORAGE_KEY_EXAM_MODE) === 'true';
+      return getConfig(this.STORAGE_KEY_EXAM_MODE, 'false') === 'true';
     }
   
     static set examMode(value) {
-      localStorage.setItem(this.STORAGE_KEY_EXAM_MODE, value.toString());
+      setConfig(this.STORAGE_KEY_EXAM_MODE, value.toString());
     }
   }
   export default Settings;

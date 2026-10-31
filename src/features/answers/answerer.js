@@ -1,6 +1,7 @@
 import { loadAnswerers } from '../../core/answererConfig.js';
 
 const REQUEST_TIMEOUT_MS = 60 * 1000;
+const PROBE_TIMEOUT_MS = 10 * 1000;
 const DEFAULT_HANDLER = 'return (res)=> [JSON.stringify(res), undefined]';
 const DEFAULT_SEPARATORS = ['===', '#', '---', '###', '|', ';', '；'];
 const CACHE_PREFIX = 'ze_answerer_cache:';
@@ -740,27 +741,81 @@ export async function searchAnswers(env, wrappers = loadAnswerers()) {
     return infos.map(({ response, data, ...rest }) => rest);
 }
 
+function probeRequest(url, method, timeoutMs) {
+    if (typeof GM_xmlhttpRequest === 'function') {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                url,
+                method: method.toUpperCase(),
+                responseType: 'text',
+                timeout: timeoutMs,
+                onload: (response) => resolve({ status: response.status }),
+                onerror: (error) => reject(error instanceof Error ? error : new Error('网络错误')),
+                ontimeout: () => reject(new Error('连接超时')),
+            });
+        });
+    }
+    return fetch(url, { method }).then((response) => ({ status: response.status }));
+}
+
+export async function probeAnswerer(wrapper, timeoutMs = PROBE_TIMEOUT_MS) {
+    const name = wrapper?.name || '未知题库';
+    let url;
+    try {
+        url = new URL(wrapper?.url);
+    } catch (error) {
+        return { name, ok: false, status: 'invalid', message: '配置错误' };
+    }
+    url.searchParams.set('t', String(Date.now()));
+
+    const startedAt = Date.now();
+    const run = async () => {
+        let response = await probeRequest(url.toString(), 'head', timeoutMs);
+        // HEAD 不被支持时回退 GET
+        if (response.status === 405 || response.status === 501) {
+            response = await probeRequest(url.toString(), 'get', timeoutMs);
+        }
+        return response;
+    };
+
+    try {
+        const response = await withTimeout(run(), timeoutMs, '连接超时');
+        const latency = Date.now() - startedAt;
+        const ok = response.status >= 200 && response.status < 400;
+        return {
+            name,
+            ok,
+            status: ok ? 'success' : 'error',
+            statusCode: response.status,
+            latency,
+            message: ok
+                ? `连接成功（HTTP ${response.status}，${latency}ms）`
+                : `连接失败（HTTP ${response.status}，${latency}ms）`,
+        };
+    } catch (error) {
+        if (error?.message === '连接超时') {
+            return {
+                name,
+                ok: false,
+                status: 'timeout',
+                message: `连接超时（${Math.round(timeoutMs / 1000)} 秒）`,
+            };
+        }
+        return {
+            name,
+            ok: false,
+            status: 'error',
+            message: `连接失败：${error?.message || '网络错误'}`,
+        };
+    }
+}
+
 export async function testAnswerers(wrappers = loadAnswerers()) {
     const list = Array.isArray(wrappers) ? wrappers : [];
     if (!list.length) {
         throw new Error('题库配置不能为空，请配置后重试。');
     }
-    const env = {
-        title: '连接测试',
-        options: 'A. 选项一\nB. 选项二',
-        type: 'single',
-    };
-    const infos = await Promise.all(list.map((wrapper) => requestWrapper(wrapper, env)));
-    return infos.map((info) => ({
-        name: info.name || '未知题库',
-        ok: !info.error,
-        message: info.error
-            ? info.error
-            : info.results.length
-              ? `连接成功，返回 ${info.results.length} 条结果`
-              : '连接成功，但未返回答案',
-        results: info.results,
-    }));
+    return Promise.all(list.map((wrapper) => probeAnswerer(wrapper)));
 }
 
 /* ------------------------------ DOM 上下文与结果转换 ------------------------------ */

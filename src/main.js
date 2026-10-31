@@ -70,9 +70,9 @@ import { resetUserConfig } from './core/configManager.js';(function () {
     const windowDiv = document.createElement('div');
     windowDiv.id = 'scriptWindow';
 
-    const MIN_WINDOW_WIDTH = 260;
-    const MIN_WINDOW_HEIGHT = 300;
     const DEFAULT_WINDOW_SIZE = { width: 300, height: 400 };
+    const MIN_WINDOW_WIDTH = DEFAULT_WINDOW_SIZE.width;
+    const MIN_WINDOW_HEIGHT = 300;
 
     function clampWindowSize(width, height) {
         const maxWidth = Math.max(MIN_WINDOW_WIDTH, window.innerWidth);

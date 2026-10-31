@@ -1,40 +1,73 @@
 import settings from '../../core/settings.js';
 import { runtime } from '../../core/runtime.js';
 import insertIntoDeepestElement from './insertElement.js';
-import { checkRightAnswer, fetchOriginalJson } from './paper.js';
+import { loadAnswerers } from '../../core/answererConfig.js';
+import { searchAnswers, inferQuestionContext, resolveAnswer, toSubject } from './answerer.js';
 import { displayErrorNotification } from '../../ui/notifications.js';
-import { createLinkIcon } from '../../assets/linkIcons.js';
 
-function createTikuCredit({ standalone = false } = {}) {
+function createTikuCredit(source, standalone = false) {
     const credit = document.createElement('div');
     credit.className = 'ze-tiku-credit';
     if (standalone) {
         credit.classList.add('modified');
     }
 
-    const brand = document.createElement('a');
-    brand.className = 'ze-tiku-credit-brand';
-    brand.href = 'https://tiku.zerror.cc';
-    brand.target = '_blank';
-    brand.rel = 'noopener noreferrer';
-    const icon = createLinkIcon('tiku');
-    icon.classList.add('ze-tiku-credit-icon');
-    icon.alt = 'ZError题库';
-    brand.append(icon, document.createTextNode('ZError题库'));
+    const name = source?.name || '自定义题库';
+    const homepage = source?.homepage;
 
-    credit.append(
-        document.createTextNode('答案由 '),
-        brand,
-        document.createTextNode('提供')
-    );
+    if (homepage && homepage !== '#') {
+        const brand = document.createElement('a');
+        brand.className = 'ze-tiku-credit-brand';
+        brand.href = homepage;
+        brand.target = '_blank';
+        brand.rel = 'noopener noreferrer';
+        brand.append(document.createTextNode(name));
+        credit.append(document.createTextNode('答案由 '), brand, document.createTextNode(' 提供'));
+    } else {
+        credit.append(document.createTextNode(`答案由 ${name} 提供`));
+    }
     return credit;
 }
 
-function appendTikuCredit(target, standalone = false) {
-    if (!target || target.querySelector(':scope > .ze-tiku-credit, .ze-tiku-credit')) {
+function appendTikuCredit(target, standalone = false, source = null) {
+    if (!target || target.querySelector('.ze-tiku-credit')) {
         return;
     }
-    target.appendChild(createTikuCredit({ standalone }));
+    target.appendChild(createTikuCredit(source, standalone));
+}
+
+function clickOption(optionElements, answer) {
+    let optionIndex = -1;
+    const text = String(answer ?? '').trim().toLowerCase();
+
+    if (text === 'yes') {
+        optionIndex = 0;
+    } else if (text === 'no') {
+        optionIndex = 1;
+    } else if (/^[a-z]$/.test(text)) {
+        optionIndex = text.toUpperCase().charCodeAt(0) - 65;
+    }
+
+    if (optionIndex < 0 || optionIndex >= optionElements.length) {
+        console.log(`无效的答案或选项索引：${answer}`);
+        return;
+    }
+
+    const optionElement = optionElements[optionIndex];
+    const input = optionElement.querySelector('input[type="radio"], input[type="checkbox"]');
+    const target = input || optionElement.firstElementChild || optionElement;
+    const checked =
+        target.checked ||
+        target.classList.contains('is-checked') ||
+        optionElement.classList.contains('is-checked');
+
+    if (checked) {
+        console.log(`选项 ${answer} 已被选中，跳过点击`);
+        return;
+    }
+
+    target.click();
+    console.log('点击了', target);
 }
 
 function displayAnswersRecursively(questions, subject, index) {
@@ -104,7 +137,7 @@ function displayAnswersRecursively(questions, subject, index) {
                                 div.appendChild(individualAnswer); // 添加到对应的 div 中
                             }
                         });
-                        appendTikuCredit(questions[index], true);
+                        appendTikuCredit(questions[index], true, subject._source);
                     } else {
                         try {
                             parsedAnswers.forEach((answerSet, idx) => {
@@ -124,7 +157,7 @@ function displayAnswersRecursively(questions, subject, index) {
                             console.error('Failed to parse rightAnswer:', subject.rightAnswer, e);
                             answerElement.textContent = `正确答案: 格式错误`;
                         }
-                        appendTikuCredit(answerElement);
+                        appendTikuCredit(answerElement, false, subject._source);
                         questions[index].appendChild(answerElement);
                     }
                 }
@@ -142,49 +175,23 @@ function displayAnswersRecursively(questions, subject, index) {
                         answerElement.textContent = `正确答案: ${subject.rightAnswer}`;
                     }
 
-                    appendTikuCredit(answerElement);
+                    appendTikuCredit(answerElement, false, subject._source);
                     questions[index].appendChild(answerElement);
                     // 自动答题
-                 let answers = subject.rightAnswer.split(',');
+                    const answers = subject.rightAnswer.split(',');
+                    let optionElements = Array.from(questions[index].querySelectorAll('.common_test_option'));
+                    if (!optionElements.length) {
+                        optionElements = Array.from(
+                            questions[index].querySelectorAll('label.el-radio, label.el-checkbox')
+                        );
+                    }
 
-                 const common_test_options = questions[index].querySelectorAll('.common_test_option');
-                 if (common_test_options.length > 0) {
-                     console.log('开始答题');
- 
-                     answers.forEach((answer, index) => {
-                         let optionIndex;
- 
-                         // 根据 answer 的值决定点击哪个选项
-                         if (answer.toLowerCase() === 'yes') {
-                             optionIndex = 0; // 点击第一个选项
-                         } else if (answer.toLowerCase() === 'no') {
-                             optionIndex = 1; // 点击第二个选项
-                         } else if (/^[A-Za-z]$/.test(answer.trim())) {
-                             // 处理 A/B/C/D/E 等字母选项
-                             optionIndex = answer.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0);
-                         } else {
-                             console.log(`无效的答案：${answer}`);
-                             return; // 跳过无效答案
-                         }
- 
-                         if (optionIndex >= 0 && optionIndex < common_test_options.length) {
-                             const firstChild = common_test_options[optionIndex].firstElementChild; // 获取第一个子元素
-                             if (firstChild) {
-                                 // 使用 setTimeout 延迟点击
-                                 setTimeout(() => {
-                                     if (!firstChild.classList.contains('is-checked')) {
-                                         firstChild.click(); // 点击第一个子元素
-                                         console.log('点击了', firstChild);
-                                     }
-                                 }, index * 200); // 每次点击后延迟 200 毫秒
-                             } else {
-                                 console.log(`选项 ${answer} 没有子元素`);
-                             }
-                         } else {
-                             console.log(`无效的选项索引：${optionIndex}`);
-                         }
-                     });
-                 }
+                    if (optionElements.length > 0) {
+                        console.log('开始答题');
+                        answers.forEach((answer, answerIndex) => {
+                            setTimeout(() => clickOption(optionElements, answer), answerIndex * 200);
+                        });
+                    }
                 }
 
                  
@@ -202,168 +209,142 @@ function displayAnswersRecursively(questions, subject, index) {
     }
 
 export async function displayRightAnswers() {
-        const elements = document.querySelectorAll('.modified');
-        if (elements.length > 0) {
-            return;
-        }
-        // 查询所有 .questiono-item 元素
-        const questions = document.querySelectorAll('.questiono-item');
+    const wrappers = loadAnswerers();
+    if (!wrappers.length) {
+        displayErrorNotification('未配置题库', ['请先在「题库」页添加题库配置']);
+        runtime.showAnswer = false;
+        syncShowAnswerButton();
+        return;
+    }
 
-        const token = settings.token
-        if (!token) {
-            displayErrorNotification('请先登录', ['未登录状态不能使用显示答案功能，其他功能不受限']);
-            return;
-        }
-        let originalJsonCopy = null;
-        try {
-            originalJsonCopy = JSON.parse(localStorage.getItem('originalJsonCopy'));
-        } catch (e) {
-            originalJsonCopy = null;
-        }
-        const TitleP = document.querySelector('div.top_title p');
-        const TitleH6 = document.querySelector('h6');
-        if (!TitleP && !TitleH6) {
-            console.error('无法获取试卷标题');
-            displayErrorNotification('无法获取试卷标题', ['请进入试卷页面再进行答题']);
-            runtime.showAnswer = false;
-            // showAnswerButton = document.getElementById('showAnswerButton');
-            // showAnswerButton.textContent = '显示答案';
-            return;
-        }
-        const title = TitleP ? TitleP.textContent : TitleH6.textContent;  // 如果元素存在，提取文本
-        console.log(originalJsonCopy);  // 输出提取的文本内容
-        const cachedPaperName = originalJsonCopy?.data?.paperName;
-        if (typeof cachedPaperName === 'string') {
-            if (cachedPaperName.trim() == title.trim()) {
+    const elements = document.querySelectorAll('.modified');
+    if (elements.length > 0) {
+        return;
+    }
 
-                runtime.paperData = originalJsonCopy;
-                runtime.cachedPaperSubjectList = runtime.paperData.data.paperSubjectList;
+    const questions = Array.from(document.querySelectorAll('.questiono-item'));
+    if (questions.length > 0) {
+        let resolvedCount = 0;
+        let lastMessage = '';
+        for (const question of questions) {
+            if (!runtime.showAnswer) return;
+            const context = inferQuestionContext(question);
+            const { subject, message } = await resolveSubjectForContext(context, wrappers);
+            if (subject) {
+                displayAnswersRecursively([question], subject, 0);
+                resolvedCount++;
             } else {
-                console.log(cachedPaperName.trim())
-                console.log(title.trim())
+                lastMessage = message || lastMessage;
             }
+            await delay(120);
         }
-        console.log('DOM中的标题：', title);  // 输出提取的文本内容
-
-        if (!runtime.paperData || !runtime.paperData.data || typeof runtime.paperData.data.id === 'undefined') {
-            console.error('Invalid originalJson structure or missing id');
-            displayErrorNotification('无法获取试卷ID', ['不用担心，这可能是因为你刷新了页面，退出后重新进入答题即可']);
-            console.log(runtime.paperData);
-            return;
-        }
-
-        if (!checkRightAnswer(runtime.paperData)) {
-            const paperId = runtime.paperData.data.id; // Get the ID
-            const fetchedJson = await fetchOriginalJson(paperId);
-            if (!checkRightAnswer(fetchedJson)) {
-                displayErrorNotification('很抱歉', ['暂时没有答案']);
-                return;
-            }
-            runtime.paperData = fetchedJson;
-            runtime.cachedPaperSubjectList = fetchedJson.data.paperSubjectList;
-            localStorage.setItem('originalJsonCopy', JSON.stringify(runtime.paperData));
-            console.log('已经存储')
-        }
-
-        if (!Array.isArray(runtime.cachedPaperSubjectList)) {
-            displayErrorNotification('无法获取题目数据', ['退出后重新进入答题即可']);
-            return;
-        }
-
-        // 根据 subjectType 对 cachedPaperSubjectList 排序，未知题型排在最后
-        const customOrder = [1, 2, 3, 10, 11, 5, 7, 8, 9];
-        const orderOf = (subject) => {
-            const order = customOrder.indexOf(subject.subjectType || 0);
-            return order === -1 ? customOrder.length : order;
-        };
-
-        const sortedSubjects = [...runtime.cachedPaperSubjectList].sort((a, b) => orderOf(a) - orderOf(b));
-        runtime.currentSortedSubjects = sortedSubjects;
-
-
-
-        // 如果存在 .questiono-item 元素
-        if (questions.length > 0) {
-            if (!checkRightAnswer(runtime.paperData)) {
-                displayErrorNotification('很抱歉', ['暂时没有答案']);
-                return;
-            };
-            sortedSubjects.forEach((subject, index) => {
-                // 执行答案显示递归函数
-                displayAnswersRecursively(questions, subject, index);
-            });
-
-        } else {
-
-            // 如果没有找到 .questiono-item，查询 .index_box 并为 li 元素添加事件监听器
-            const indexbox = document.querySelector('.index_box');
-            if (!indexbox) {
-                displayErrorNotification('未在页面上找到题目', ['请在答题页面中尝试显示答案']);
-                return;
-            };
-
-
-            const selectedItem = Array.from(indexbox.querySelectorAll('li')).find(li => li.classList.contains('show_select'));
-            if (selectedItem) {
-                const matchedSubject = findSubjectForCurrentQuestion();
-                console.log(matchedSubject ? 'Found matched subject:' : 'No matching subject found.', matchedSubject);
-                showAnswerForQuestion(matchedSubject);
-            }
-
-            // 题号和上一题/下一题按钮只绑定一次，点击后等题目切换再显示答案
-            const buttons = Array.from(document.querySelectorAll('button'));
-            const navElements = [
-                ...indexbox.querySelectorAll('li'),
-                buttons.find(button => button.textContent.trim() === '上一题'),
-                buttons.find(button => button.textContent.trim() === '下一题')
-            ].filter(Boolean);
-            navElements.forEach(element => {
-                if (runtime.boundAnswerNavElements.has(element)) return;
-                runtime.boundAnswerNavElements.add(element);
-                element.addEventListener('click', scheduleAnswerForCurrentQuestion);
-            });
+        if (resolvedCount === 0) {
+            runtime.showAnswer = false;
+            syncShowAnswerButton();
+            displayErrorNotification('未获取到答案', [lastMessage || '题库未返回可用答案']);
         }
         return;
-    };
-
-function htmlToText(html) {
-        const doc = new DOMParser().parseFromString(String(html ?? ''), 'text/html');
-        return doc.body.textContent || '';
     }
+
+    // 如果没有找到 .questiono-item，查询 .index_box 并为 li 元素添加事件监听器
+    const indexbox = document.querySelector('.index_box');
+    if (!indexbox) {
+        runtime.showAnswer = false;
+        syncShowAnswerButton();
+        displayErrorNotification('未在页面上找到题目', ['请在答题页面中尝试显示答案']);
+        return;
+    }
+
+    const selectedItem = Array.from(indexbox.querySelectorAll('li')).find((li) => li.classList.contains('show_select'));
+    if (selectedItem) {
+        const { subject, message } = await resolveCurrentQuestionSubject(wrappers);
+        if (subject) {
+            showAnswerForQuestion(subject);
+        } else {
+            document.querySelectorAll('.answer-display').forEach((el) => el.remove());
+            runtime.showAnswer = false;
+            syncShowAnswerButton();
+            displayErrorNotification('未获取到答案', [message || '题库未返回可用答案']);
+        }
+    }
+
+    // 题号和上一题/下一题按钮只绑定一次，点击后等题目切换再显示答案
+    const buttons = Array.from(document.querySelectorAll('button'));
+    const navElements = [
+        ...indexbox.querySelectorAll('li'),
+        buttons.find((button) => button.textContent.trim() === '上一题'),
+        buttons.find((button) => button.textContent.trim() === '下一题'),
+    ].filter(Boolean);
+    navElements.forEach((element) => {
+        if (runtime.boundAnswerNavElements.has(element)) return;
+        runtime.boundAnswerNavElements.add(element);
+        element.addEventListener('click', scheduleAnswerForCurrentQuestion);
+    });
+}
+
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resolveSubjectForContext(context, wrappers) {
+    if (!context || !context.title) {
+        return { subject: null, message: '未找到题目标题，页面结构可能已变化' };
+    }
+    let infos;
+    try {
+        infos = await searchAnswers(context, wrappers);
+    } catch (error) {
+        return { subject: null, message: error.message };
+    }
+    const resolution = resolveAnswer(infos, context);
+    const subject = toSubject(context, resolution);
+    if (!subject) {
+        console.warn('[ZE题库] 未获取到答案', context.title, context.type, resolution.message);
+    }
+    return { subject, message: resolution.message };
+}
+
+async function resolveCurrentQuestionSubject(wrappers) {
+    const root = document.querySelector('.question_content') || document.querySelector('.questiono-item');
+    if (!root) {
+        return null;
+    }
+    const context = inferQuestionContext(root);
+    return resolveSubjectForContext(context, wrappers);
+}
 
 function currentQuestionTitle() {
-        const questionTitleElement = document.querySelector('.question_content .question_title');
-        return questionTitleElement ? questionTitleElement.textContent.trim().replace(/\s+/g, '') : null;
-    }
-
-function findSubjectForCurrentQuestion() {
-        const questionTitle = currentQuestionTitle();
-        if (!questionTitle) return undefined;
-        return runtime.currentSortedSubjects.find(subject =>
-            htmlToText(subject.subjectName).trim().replace(/\s+/g, '') === questionTitle
-        );
-    }
+    const questionTitleElement = document.querySelector('.question_content .question_title');
+    return questionTitleElement ? questionTitleElement.textContent.trim().replace(/\s+/g, '') : null;
+}
 
 function scheduleAnswerForCurrentQuestion() {
-        const previousTitle = currentQuestionTitle();
-        const startedAt = Date.now();
-        const tick = () => {
-            const title = currentQuestionTitle();
-            if (title === previousTitle && Date.now() - startedAt < 2000) {
-                setTimeout(tick, 80);
-                return;
-            }
-            const matchedSubject = findSubjectForCurrentQuestion();
-            if (!matchedSubject) {
-                console.log('No matching subject found.');
-                document.querySelectorAll('.answer-display').forEach(el => el.remove()); // 删除所有已有答案
-            }
-            if (runtime.showAnswer) {
-                showAnswerForQuestion(matchedSubject);
-            }
-        };
-        setTimeout(tick, 80);
-    }
+    const previousTitle = currentQuestionTitle();
+    const startedAt = Date.now();
+    const tick = async () => {
+        const title = currentQuestionTitle();
+        if (title === previousTitle && Date.now() - startedAt < 2000) {
+            setTimeout(tick, 80);
+            return;
+        }
+        if (!runtime.showAnswer) {
+            return;
+        }
+        const wrappers = loadAnswerers();
+        if (!wrappers.length) {
+            return;
+        }
+        const subject = await resolveCurrentQuestionSubject(wrappers);
+        const resolved = subject.subject || null;
+        if (!resolved) {
+            console.log('No matching subject found.');
+            document.querySelectorAll('.answer-display').forEach((el) => el.remove());
+            return;
+        }
+        showAnswerForQuestion(resolved);
+    };
+    setTimeout(tick, 80);
+}
 
 
 export function showAnswerForQuestion(subject) {
@@ -431,7 +412,7 @@ export function showAnswerForQuestion(subject) {
 
                             }
                         });
-                        appendTikuCredit(question_content, true);
+                        appendTikuCredit(question_content, true, subject._source);
                     } else {
                         try {
                             // 遍历数组，按要求拼接内容
@@ -451,7 +432,7 @@ export function showAnswerForQuestion(subject) {
                             console.error('Failed to parse rightAnswer:', subject.rightAnswer, e);
                             answerElement.textContent = `正确答案: 格式错误`;
                         }
-                        appendTikuCredit(answerElement);
+                        appendTikuCredit(answerElement, false, subject._source);
                         question_content.appendChild(answerElement);
                     }
                 }, 200); // 延迟1秒执行
@@ -466,50 +447,30 @@ export function showAnswerForQuestion(subject) {
                 } else {
                     answerElement.textContent = `正确答案: ${subject.rightAnswer}`;
                 }
-                appendTikuCredit(answerElement);
+                appendTikuCredit(answerElement, false, subject._source);
                 question_content.appendChild(answerElement)
                 setTimeout(() => {
-                    const radio_contents = question_content.querySelectorAll('.radio_content');
+                    let optionElements = Array.from(question_content.querySelectorAll('.radio_content'));
+                    if (!optionElements.length) {
+                        optionElements = Array.from(
+                            question_content.querySelectorAll('label.el-radio, label.el-checkbox')
+                        );
+                    }
+                    if (!optionElements.length) {
+                        optionElements = Array.from(
+                            question_content.querySelectorAll('.common_test_option')
+                        );
+                    }
+
                     const answers = subject.rightAnswer.split(',');
-                    console.log(radio_contents);
-                    if (radio_contents.length > 0) {
+                    console.log(optionElements);
+                    if (optionElements.length > 0) {
                         console.log('开始答题');
-
-                        answers.forEach((answer, index) => {
-                            let optionIndex = -1;
-
-                            // 处理 'yes' 和 'no'
-                            if (answer.toLowerCase() === 'yes') {
-                                optionIndex = 0; // 点击第一个选项
-                            } else if (answer.toLowerCase() === 'no') {
-                                optionIndex = 1; // 点击第二个选项
-                            } else {
-                                // 处理 A/B/C/D/E
-                                optionIndex = answer.toUpperCase().charCodeAt(0) - 'A'.charCodeAt(0); // 将 A/B/C/D/E 转换为索引
-                            }
-
-                            if (optionIndex >= 0 && optionIndex < radio_contents.length) {
-                                const firstChild = radio_contents[optionIndex].firstElementChild; // 获取第一个子元素
-                                if (firstChild) {
-                                    // 检查子元素是否已经包含 'is-checked' 类
-                                    if (!firstChild.classList.contains('is-checked')) {
-                                        // 使用 setTimeout 延迟点击
-                                        setTimeout(() => {
-                                            firstChild.click(); // 点击第一个子元素
-                                            console.log('点击了', firstChild);
-                                        }, index * 200); // 每次点击后延迟 1 秒
-                                    } else {
-                                        console.log(`选项 ${answer} 已经被选中了，跳过点击`);
-                                    }
-                                } else {
-                                    console.log(`选项 ${answer} 没有子元素`);
-                                }
-                            } else {
-                                console.log(`无效的答案：${answer}`);
-                            }
+                        answers.forEach((answer, answerIndex) => {
+                            setTimeout(() => clickOption(optionElements, answer), answerIndex * 200);
                         });
                     }
-                }, 500); // 每次点击后延迟 1 秒
+                }, 500); // 每次点击后延迟 500 毫秒
 
 
 
@@ -566,7 +527,7 @@ export function showAnswerForQuestion(subject) {
                                     div.appendChild(individualAnswer); // 添加到对应的 div 中
                                 }
                             });
-                            appendTikuCredit(childElement, true);
+                            appendTikuCredit(childElement, true, subject._source);
                         } else {
                             const childAnswerElement = answerElement.cloneNode(false);
                             try {
@@ -587,7 +548,7 @@ export function showAnswerForQuestion(subject) {
                                 console.error('Failed to parse rightAnswer:', child.rightAnswer, e);
                                 childAnswerElement.textContent = `正确答案: 格式错误`;
                             }
-                            appendTikuCredit(childAnswerElement);
+                            appendTikuCredit(childAnswerElement, false, subject._source);
                             childElement.appendChild(childAnswerElement)
                         }
                     }
@@ -607,7 +568,7 @@ export function showAnswerForQuestion(subject) {
                             newElement.textContent = `正确答案: ${child.rightAnswer}`;
                         }
 
-                        appendTikuCredit(newElement);
+                        appendTikuCredit(newElement, false, subject._source);
                         childElement.appendChild(newElement);
                     }
 

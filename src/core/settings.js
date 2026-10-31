@@ -1,20 +1,9 @@
 class Settings {
-    static STORAGE_KEY_TOKEN = 'floating_window_token';
     static STORAGE_KEY_POSITION = 'floating_window_position';
     static STORAGE_KEY_MUTE = 'video_mute';
     static STORAGE_KEY_SPEED = 'video_speed';
     static STORAGE_KEY_EXAM_MODE = 'exam_mode';
-    static STORAGE_KEY_USERNAME = 'username';
-    static STORAGE_KEY_USER_ID = 'user_id';
-    static STORAGE_KEY_CREATE_TIME = 'create_time';
     static STORAGE_KEY_DO_VIDEO = 'do_video';
-    
-    static get createTime() {
-      return localStorage.getItem(this.STORAGE_KEY_CREATE_TIME);
-    }
-    static set createTime(value) {
-      localStorage.setItem(this.STORAGE_KEY_CREATE_TIME, value);
-    }
 
     static get speedRun() {
       return localStorage.getItem(this.STORAGE_KEY_DO_VIDEO) === 'true';
@@ -23,34 +12,6 @@ class Settings {
       localStorage.setItem(this.STORAGE_KEY_DO_VIDEO, value.toString());
     }
 
-    // 直接访问用户名
-    static get username() {
-      return localStorage.getItem(this.STORAGE_KEY_USERNAME);
-    }
-    static set username(value) {
-      localStorage.setItem(this.STORAGE_KEY_USERNAME, value);
-    }
-
-    static get userId() {
-      return localStorage.getItem(this.STORAGE_KEY_USER_ID);
-    }
-    static set userId(value) {
-      if (value == null || value === '') {
-        localStorage.removeItem(this.STORAGE_KEY_USER_ID);
-        return;
-      }
-      localStorage.setItem(this.STORAGE_KEY_USER_ID, String(value));
-    }
-  
-    // 直接访问 token
-    static get token() {
-      return localStorage.getItem(this.STORAGE_KEY_TOKEN);
-    }
-  
-    static set token(value) {
-      localStorage.setItem(this.STORAGE_KEY_TOKEN, value);
-    }
-  
     // 直接访问浮动窗口位置
     static get position() {
       const position = localStorage.getItem(this.STORAGE_KEY_POSITION);

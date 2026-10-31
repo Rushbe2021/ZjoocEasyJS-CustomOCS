@@ -24,7 +24,6 @@
     "webpack-stream": "^7.0.0"
   },
   "dependencies": {
-    "blobatar": "^2.7.0",
     "gulp-watch": "^5.0.1",
     "lucide": "^1.49.0"
   }

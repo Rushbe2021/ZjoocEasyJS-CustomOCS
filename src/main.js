@@ -1,5 +1,6 @@
 import settings from './core/settings.js';
 import { runtime } from './core/runtime.js';
+import { CUSTOM_NAME, CUSTOM_VERSION, UPSTREAM_NAME, UPSTREAM_VERSION, BASED_ON } from './core/version.js';
 import { getCurrentCourseChapters } from './core/chapterCache.js';
 import styles from './styles.css';
 import { imageData } from './assets/imageBase64.js';
@@ -7,19 +8,25 @@ import { displayRightAnswers, toggleAnswers, refreshAnswersForNewPage } from './
 import createFloatingImageWorld from './features/decoration/floatPic.js';
 import fixBlankPage from './platform/zjooc/fixBlankPage.js';
 import { autoPlay, stopAutoPlay } from './features/autoplay/autoPlay.js';
-import { createButton, toggleButtonState } from './components/button.js';
 import loadFont from './ui/loadFont.js';
 import { showConfirmDialog } from './ui/dialog.js';
 import { displaySuccessNotification, displayErrorNotification } from './ui/notifications.js';
 import { exposeCopyText } from './ui/copyText.js';
 import { createIcon, icons } from './ui/icons.js';
 import { createLinkIcon } from './assets/linkIcons.js';
-import { createUserAvatar, syncUserAvatar } from './ui/userAvatar.js';
 import autoPlayZJLLL, { stopAutoPlayZJLLL } from './platform/zjlll/autoPlay.js';
 import { initializeEditorSync } from './features/editor/pasteUnlock.js';
 import { installNetworkHooks } from './features/intercept/network.js';
 import { installHistoryHooks } from './features/intercept/history.js';
 import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
+import {
+    SAMPLE_ANSWERERS,
+    clearAnswerers,
+    loadAnswerers,
+    parseAnswerers,
+    saveAnswerers,
+} from './core/answererConfig.js';
+import { testAnswerers } from './features/answers/answerer.js';
 (function () {
 
     if (checkIfZJLLL()) {
@@ -31,7 +38,6 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
             document.body.style.fontFamily = 'SmileySans-Oblique, sans-serif';
         }
     });
-    const loginState = runtime.loginState;
     const routeGuard = runtime.routeGuard;
 
     function stopFloatingImageSafely() {
@@ -97,8 +103,7 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
     zzxLogo.style.width = '20px'
 
     const titleText = document.createElement('span')
-    const scriptVersion = typeof GM_info !== 'undefined' && GM_info.script ? GM_info.script.version : '';
-    titleText.textContent = scriptVersion ? `在浙学助手 v${scriptVersion}` : '在浙学助手';
+    titleText.textContent = `${CUSTOM_NAME} v${CUSTOM_VERSION}`;
     titleText.style.marginLeft = '10px'
 
     const title = document.createElement('div')
@@ -138,7 +143,9 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
     const pages = [
         { id: 'home', label: '首页', icon: icons.home },
         { id: 'settings', label: '设置', icon: icons.settings },
+        { id: 'answerer', label: '题库', icon: icons.database },
         { id: 'links', label: '链接', icon: icons.links },
+        { id: 'about', label: '关于', icon: icons.about },
     ];
 
     let currentPage = null;
@@ -163,7 +170,9 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
         const renderers = {
             home: renderHomePage,
             settings: renderSettingsPage,
+            answerer: renderAnswererPage,
             links: renderLinksPage,
+            about: renderAboutPage,
         };
         const render = renderers[pageId] || renderHomePage;
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -494,114 +503,6 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
         syncNav('settings');
         displayArea.innerHTML = '';
 
-        const userInfoContainer = document.createElement('div');
-        userInfoContainer.setAttribute('id', 'userInfoContainer');
-
-        const userInfo = document.createElement('div');
-        userInfo.appendChild(createUserAvatar({
-            userId: settings.userId,
-            name: settings.username,
-        }));
-        if (loginState.logged && settings.token && !settings.userId) {
-            syncUserAvatar();
-        }
-
-        const userTextContainer = document.createElement('div');
-        userTextContainer.setAttribute('id', 'userTextContainer');
-
-        const username = document.createElement('span');
-        username.textContent = settings.username;
-        username.setAttribute('id', 'username');
-        userTextContainer.appendChild(username);
-
-        const createTime = document.createElement('span');
-        createTime.setAttribute('id', 'createTime');
-        createTime.textContent = settings.createTime || '';
-        userTextContainer.appendChild(createTime);
-
-        const userDataContainer = document.createElement('div');
-        userDataContainer.setAttribute('id', 'userDataContainer');
-
-        if (!loginState.logged) {
-            userInfoContainer.style.display = 'none';
-        } else {
-            userInfoContainer.style.display = 'flex';
-        }
-
-        userInfoContainer.appendChild(userInfo);
-        userInfoContainer.appendChild(userTextContainer);
-        displayArea.appendChild(userInfoContainer);
-
-
-        const imgContainer = document.createElement('div');
-        imgContainer.setAttribute('id', 'imgContainer');
-        if (loginState.logged) {
-            imgContainer.style.display = 'none';
-        } else {
-            imgContainer.style.display = 'flex';
-        }
-        imgContainer.style.width = '100%';
-        imgContainer.style.marginBottom = '20px';
-        const qrImage = document.createElement('img');
-        qrImage.src = imageData['weChatQr'];
-        qrImage.style.width = '50%';
-        imgContainer.appendChild(qrImage);
-
-        const rightContainer = document.createElement('div');
-        rightContainer.style.width = '50%';
-        rightContainer.style.alignContent = 'center';
-        rightContainer.style.justifyItems = 'center';
-        // rightContainer.style.backgroundColor = '#e8e8e8';
-
-        const instructions = document.createElement('instructions');
-        const span1 = document.createElement('span');
-        const fingerImg = document.createElement('img');
-        fingerImg.src = imageData['fingerEmoji'];
-        fingerImg.style.width = '16.8px';
-        instructions.appendChild(fingerImg);
-        span1.innerHTML = '关注公众号';
-        span1.style.fontFamily = 'SmileySans-Oblique, sans-serif';
-        span1.style.fontSize = '12px';
-
-
-        const span2 = document.createElement('span');
-        span2.innerHTML = '未耕之地';
-        span2.style.color = '#03a9f5';
-        span2.style.fontFamily = 'SmileySans-Oblique, sans-serif';
-        span2.style.fontSize = '12px';
-
-        const div2 = document.createElement('div');
-
-        const span3 = document.createElement('span');
-        span3.innerHTML = '发送验证码完成登录';
-        span3.style.fontFamily = 'SmileySans-Oblique, sans-serif';
-        span3.style.fontSize = '12px';
-        div2.appendChild(span3);
-
-        instructions.appendChild(span1);
-        instructions.appendChild(span2);
-        instructions.appendChild(div2);
-
-        const text = document.createElement('p');
-        text.innerHTML = '验证码：';
-        text.style.fontFamily = 'SmileySans-Oblique, sans-serif';
-        const btn = createButton('点击生成', async () => {
-            await toggleButtonState(btn, true, loginState);
-        });
-        if (loginState.code) {
-            const iconContainer = btn.querySelector('.icon');
-            btn.classList.add('loading');
-            iconContainer.innerHTML = `<div class="VerificationCode">${loginState.code}<div>`;
-            btn.disabled = true;
-        }
-        rightContainer.appendChild(instructions)
-        rightContainer.appendChild(text);
-        rightContainer.appendChild(btn);
-        imgContainer.appendChild(rightContainer);
-
-        // 将元素添加到 displayArea
-        displayArea.appendChild(imgContainer);
-
         // 创建“视频静音”按钮
         const examModeLabel = document.createElement('label');
         examModeLabel.classList.add('switch');
@@ -702,6 +603,173 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
 
 
         applySwitchStyles();
+    }
+
+    function renderAnswererPage(options = {}) {
+        if (!options.fromSwitch) {
+            pageSwitchToken += 1;
+            displayArea.classList.remove('is-switching');
+        }
+        currentPage = 'answerer';
+        syncNav('answerer');
+        displayArea.innerHTML = '';
+
+        const root = document.createElement('div');
+        root.className = 'ze-answerer';
+
+        const heading = document.createElement('div');
+        heading.className = 'ze-answerer-title';
+        heading.textContent = '题库配置';
+        root.appendChild(heading);
+
+        const hint = document.createElement('p');
+        hint.className = 'ze-answerer-hint';
+        hint.textContent = '粘贴 OCSJS AnswererWrapper 数组（JSON）或配置链接，支持 url、data、method、contentType、type、headers、handler。';
+        root.appendChild(hint);
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'ze-answerer-textarea';
+        textarea.spellcheck = false;
+        const current = loadAnswerers();
+        textarea.value = current.length ? JSON.stringify(current, null, 2) : '';
+        textarea.placeholder = '[\n  {\n    "name": "我的题库",\n    "url": "https://example.com/search",\n    "method": "get",\n    "data": { "title": "${title}" },\n    "handler": "return (res) => res.code === 1 ? [res.question, res.answer] : undefined"\n  }\n]';
+        root.appendChild(textarea);
+
+        const status = document.createElement('div');
+        status.className = 'ze-answerer-status';
+        status.textContent = current.length ? `当前已配置 ${current.length} 个题库` : '尚未配置题库';
+        root.appendChild(status);
+
+        const actions = document.createElement('div');
+        actions.className = 'ze-answerer-actions';
+
+        const createAction = (label, handler) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'ze-answerer-button';
+            button.textContent = label;
+            button.addEventListener('click', handler);
+            return button;
+        };
+
+        const setStatus = (text, state = '') => {
+            status.textContent = text;
+            status.dataset.state = state;
+        };
+
+        actions.appendChild(
+            createAction('保存', async () => {
+                try {
+                    const parsed = await parseAnswerers(textarea.value);
+                    saveAnswerers(parsed);
+                    textarea.value = JSON.stringify(parsed, null, 2);
+                    setStatus(`已保存 ${parsed.length} 个题库`, 'success');
+                    displaySuccessNotification('题库配置已保存', '');
+                } catch (error) {
+                    setStatus(error.message, 'error');
+                    displayErrorNotification('题库配置无效', [error.message]);
+                }
+            })
+        );
+
+        actions.appendChild(
+            createAction('测试连接', async () => {
+                try {
+                    const parsed = await parseAnswerers(textarea.value);
+                    setStatus('正在测试题库连接…', 'info');
+                    const results = await testAnswerers(parsed);
+                    const lines = results.map(
+                        (result) => `${result.ok ? '✓' : '✗'} ${result.name}：${result.message}`
+                    );
+                    const allOk = results.every((result) => result.ok);
+                    setStatus(lines.join('\n'), allOk ? 'success' : 'error');
+                    if (allOk) {
+                        displaySuccessNotification('题库连接正常', lines.join('\n'));
+                    } else {
+                        displayErrorNotification(
+                            '部分题库连接失败',
+                            lines.filter((line) => line.startsWith('✗'))
+                        );
+                    }
+                } catch (error) {
+                    setStatus(error.message, 'error');
+                    displayErrorNotification('测试失败', [error.message]);
+                }
+            })
+        );
+
+        actions.appendChild(
+            createAction('示例', () => {
+                textarea.value = JSON.stringify(SAMPLE_ANSWERERS, null, 2);
+                setStatus('已填入示例，请替换为真实题库后保存', 'info');
+            })
+        );
+
+        actions.appendChild(
+            createAction('剪贴板', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    if (!text.trim()) {
+                        setStatus('剪贴板为空', 'error');
+                        return;
+                    }
+                    textarea.value = text;
+                    setStatus('已从剪贴板读取，点击保存生效', 'info');
+                } catch (error) {
+                    setStatus('读取剪贴板失败，请手动粘贴', 'error');
+                }
+            })
+        );
+
+        actions.appendChild(
+            createAction('清空', () => {
+                clearAnswerers();
+                textarea.value = '';
+                setStatus('已清空题库配置', 'info');
+            })
+        );
+
+        root.appendChild(actions);
+
+        const warning = document.createElement('p');
+        warning.className = 'ze-answerer-hint ze-answerer-warning';
+        warning.textContent = 'handler 会以脚本形式执行，请只粘贴可信配置；非官方域名需要脚本管理器授权跨域访问。';
+        root.appendChild(warning);
+
+        displayArea.appendChild(root);
+    }
+
+    function renderAboutPage(options = {}) {
+        if (!options.fromSwitch) {
+            pageSwitchToken += 1;
+            displayArea.classList.remove('is-switching');
+        }
+        currentPage = 'about';
+        syncNav('about');
+        displayArea.innerHTML = '';
+
+        const root = document.createElement('div');
+        root.className = 'ze-about';
+
+        const heading = document.createElement('div');
+        heading.className = 'ze-about-title';
+        heading.textContent = '关于';
+        root.appendChild(heading);
+
+        const lines = [
+            `当前版本：${CUSTOM_NAME} v${CUSTOM_VERSION}`,
+            `上游版本：${UPSTREAM_NAME} v${UPSTREAM_VERSION}`,
+            BASED_ON,
+        ];
+
+        lines.forEach((text) => {
+            const line = document.createElement('div');
+            line.className = 'ze-about-line';
+            line.textContent = text;
+            root.appendChild(line);
+        });
+
+        displayArea.appendChild(root);
     }
 
     function renderHomePage(options = {}) {
@@ -969,67 +1037,6 @@ import checkIfZJLLL from './platform/zjlll/ifZJLLL.js';
         displayArea.appendChild(buttonContainer);
         applySwitchStyles();
     }
-
-    async function validateTokenWithRetry(retries = 3) {
-        const attemptFetch = async (retryCount) => {
-            try {
-                const response = await fetch('https://app.zaizhexue.top/validateToken', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token: settings.token })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    loginState.logged = true;
-
-                    // 更新用户信息显示
-                    let userInfoContainer = document.getElementById('userInfoContainer');
-                    if (userInfoContainer) userInfoContainer.style.display = 'flex';
-                    let imgContainer = document.getElementById('imgContainer');
-                    if (imgContainer) imgContainer.style.display = 'none';
-
-                    settings.username = data.user.nickname;
-                    await syncUserAvatar(data.user);
-
-                    const createTimeElement = document.getElementById('createTime');
-                    const userCreatedTime = new Date(data.user.createdTime);
-                    const formattedDate = `${userCreatedTime.getMonth() + 1}/${userCreatedTime.getDate()}/${userCreatedTime.getFullYear()}`;
-                    if (createTimeElement) createTimeElement.textContent = formattedDate;
-                    settings.createTime = formattedDate;
-
-                    renderHomePage();
-                } else {
-                    const errorData = await response.json();
-                    throw errorData;  // 抛出错误以触发 catch 块
-                }
-            } catch (error) {
-                console.error('Error:', error);
-
-                if (retryCount > 0) {
-                    // 如果还有剩余重试次数，则等待一段时间后再次尝试
-                    await new Promise(resolve => setTimeout(resolve, 1000));  // 等待1秒
-                    return attemptFetch(retryCount - 1);  // 减少重试计数并重试
-                } else {
-                    // 处理最终失败情况
-                    if (error.error === 'Token expired') {
-                        displayErrorNotification('登录过期', ['已过期，请重新登录']);
-                    } else {
-                        displayErrorNotification('登录信息出错', ['请重新登录']);
-                    }
-                    settings.token = "";
-                    renderSettingsPage();
-                }
-            }
-        };
-
-        await attemptFetch(retries);
-    }
-
-    validateTokenWithRetry();  // 调用带有重试功能的验证函数
-    
 
     fixBlankPage();
 

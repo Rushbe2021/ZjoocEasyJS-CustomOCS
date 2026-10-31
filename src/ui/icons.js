@@ -1,4 +1,4 @@
-import { createElement, House, Link, Settings } from 'lucide';
+import { createElement, Database, House, Info, Link, Settings } from 'lucide';
 
 const DEFAULT_ATTRS = {
     width: 20,
@@ -14,5 +14,8 @@ export function createIcon(iconNode, attrs = {}) {
 export const icons = {
     home: House,
     settings: Settings,
+    answerer: Database,
+    database: Database,
     links: Link,
+    about: Info,
 };

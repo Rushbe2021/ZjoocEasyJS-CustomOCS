@@ -27,8 +27,7 @@ import {
     saveAnswerers,
 } from './core/answererConfig.js';
 import { testAnswerers } from './features/answers/answerer.js';
-import { deleteUserConfig, resetUserConfig } from './core/configManager.js';
-(function () {
+import { resetUserConfig } from './core/configManager.js';(function () {
 
     if (checkIfZJLLL()) {
         return;
@@ -705,11 +704,6 @@ import { deleteUserConfig, resetUserConfig } from './core/configManager.js';
         resetButton.className = 'ze-settings-button';
         resetButton.textContent = '重置设置';
 
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button';
-        deleteButton.className = 'ze-settings-button is-danger';
-        deleteButton.textContent = '删除设置';
-
         const restoreWindowDefaults = () => {
             applyWindowSize(300, 400);
             applyWindowPosition(0, 0);
@@ -717,7 +711,10 @@ import { deleteUserConfig, resetUserConfig } from './core/configManager.js';
         };
 
         resetButton.addEventListener('click', async () => {
-            const confirmed = await showConfirmDialog('将恢复窗口尺寸、位置、开关和题库配置，确定重置吗？');
+            const confirmed = await showConfirmDialog(
+                '将恢复窗口尺寸、位置、开关和题库配置，确定重置吗？',
+                '是否确认重置'
+            );
             if (!confirmed) {
                 return;
             }
@@ -727,19 +724,7 @@ import { deleteUserConfig, resetUserConfig } from './core/configManager.js';
             displaySuccessNotification('已重置设置', '');
         });
 
-        deleteButton.addEventListener('click', async () => {
-            const confirmed = await showConfirmDialog('将删除所有已保存设置（含题库配置），且无法撤销，确定删除吗？');
-            if (!confirmed) {
-                return;
-            }
-            deleteUserConfig();
-            restoreWindowDefaults();
-            renderSettingsPage();
-            displaySuccessNotification('已删除设置', '');
-        });
-
         settingsActions.appendChild(resetButton);
-        settingsActions.appendChild(deleteButton);
         displayArea.appendChild(settingsActions);
 
         applySwitchStyles();

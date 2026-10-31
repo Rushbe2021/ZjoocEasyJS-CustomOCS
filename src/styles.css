@@ -929,7 +929,7 @@ a.ze-tiku-credit-brand:hover {
 /* 设置页操作区 */
 .ze-settings-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 8px;
     width: 89%;
     margin: 16px 0 4px;
@@ -954,11 +954,115 @@ a.ze-tiku-credit-brand:hover {
     transform: scale(0.98);
 }
 
-.ze-settings-button.is-danger {
-    background: #fdecea;
-    color: #c0392b;
+/* 确认弹窗 */
+.ze-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.36);
+    z-index: 9999999;
+    opacity: 0;
+    transition: opacity 180ms ease;
 }
 
-.ze-settings-button.is-danger:hover {
-    background: #fbd9d5;
+.ze-confirm-overlay.is-open {
+    opacity: 1;
+}
+
+.ze-confirm-overlay.is-closing {
+    opacity: 0;
+}
+
+.ze-confirm-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 400px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+    padding: 20px;
+    color: #1d1d1f;
+    background: rgba(255, 255, 255, 0.58);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.12),
+        0 8px 20px rgba(0, 0, 0, 0.24),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    z-index: 10000000;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.ze-confirm-modal.is-open {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.ze-confirm-modal.is-closing {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+}
+
+.ze-confirm-title {
+    margin: 0 0 10px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.ze-confirm-message {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #3a3a3c;
+}
+
+.ze-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.ze-confirm-button {
+    padding: 8px 16px;
+    border: 0;
+    border-radius: 8px;
+    background: #e8e8e8;
+    color: #1d1d1f;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ze-confirm-button:hover {
+    background: #dcdcdc;
+}
+
+.ze-confirm-button.is-primary {
+    background: #2ba8fb;
+    color: #fff;
+}
+
+.ze-confirm-button.is-primary:hover {
+    background: #1f97e6;
+}
+
+.ze-confirm-button:active {
+    transform: scale(0.98);
+}
+
+.ze-confirm-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ze-confirm-overlay,
+    .ze-confirm-modal {
+        transition: none;
+    }
 }

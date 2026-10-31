@@ -1,16 +1,5 @@
-import { deleteConfig, setConfig } from './gmStorage.js';
+import { setConfig } from './gmStorage.js';
 import { clearAnswerers } from './answererConfig.js';
-
-export const CONFIG_KEYS = [
-    'floating_window_position',
-    'floating_window_size',
-    'video_mute',
-    'video_speed',
-    'exam_mode',
-    'do_video',
-    'ze_answerer_wrappers',
-    'ze_debug',
-];
 
 const DEFAULT_VALUES = {
     floating_window_position: JSON.stringify({ left: 0, top: 0 }),
@@ -25,8 +14,4 @@ const DEFAULT_VALUES = {
 export function resetUserConfig() {
     Object.entries(DEFAULT_VALUES).forEach(([key, value]) => setConfig(key, value));
     clearAnswerers();
-}
-
-export function deleteUserConfig() {
-    CONFIG_KEYS.forEach((key) => deleteConfig(key));
 }

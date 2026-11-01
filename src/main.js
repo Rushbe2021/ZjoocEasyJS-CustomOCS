@@ -828,33 +828,17 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         );
 
         actions.appendChild(
-            createAction('示例', () => {
-                textarea.value = JSON.stringify(SAMPLE_ANSWERERS, null, 2);
-                setStatus('已填入示例，请替换为真实题库后保存', 'info');
-            })
-        );
-
-        actions.appendChild(
-            createAction('剪贴板', async () => {
-                try {
-                    const text = await navigator.clipboard.readText();
-                    if (!text.trim()) {
-                        setStatus('剪贴板为空', 'error');
-                        return;
-                    }
-                    textarea.value = text;
-                    setStatus('已从剪贴板读取，点击保存生效', 'info');
-                } catch (error) {
-                    setStatus('读取剪贴板失败，请手动粘贴', 'error');
-                }
-            })
-        );
-
-        actions.appendChild(
             createAction('清空', () => {
                 clearAnswerers();
                 textarea.value = '';
                 setStatus('已清空题库配置', 'info');
+            })
+        );
+
+        actions.appendChild(
+            createAction('示例', () => {
+                textarea.value = JSON.stringify(SAMPLE_ANSWERERS, null, 2);
+                setStatus('已填入示例，请替换为真实题库后保存', 'info');
             })
         );
 

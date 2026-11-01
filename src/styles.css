@@ -231,7 +231,7 @@ a.ze-tiku-credit-brand:hover {
     position: relative;
     z-index: 1;
     font-weight: 600;
-    transition: color 0.3s ease;
+    transition: color 150ms ease, transform 100ms ease-out;
 }
 
 .window-pageLink:hover {
@@ -872,14 +872,15 @@ a.ze-tiku-credit-brand:hover {
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 150ms ease, transform 100ms ease-out;
 }
 
 .ze-answerer-button:hover {
-    background: #dcdcdc;
+    background: #d8d8d8;
 }
 
 .ze-answerer-button:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
 /* 关于页 */
@@ -947,14 +948,15 @@ a.ze-tiku-credit-brand:hover {
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 150ms ease, transform 100ms ease-out;
 }
 
 .ze-settings-button:hover {
-    background: #dcdcdc;
+    background: #d8d8d8;
 }
 
 .ze-settings-button:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
 /* 确认弹窗 */
@@ -1044,6 +1046,7 @@ a.ze-tiku-credit-brand:hover {
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 150ms ease, transform 100ms ease-out;
 }
 
 .ze-confirm-modal .ze-confirm-button {
@@ -1060,7 +1063,7 @@ a.ze-tiku-credit-brand:hover {
 }
 
 .ze-confirm-button:hover {
-    background: #dcdcdc;
+    background: #d8d8d8;
 }
 
 .ze-confirm-button.is-primary {
@@ -1073,7 +1076,7 @@ a.ze-tiku-credit-brand:hover {
 }
 
 .ze-confirm-button:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
 }
 
 .ze-confirm-button:disabled {

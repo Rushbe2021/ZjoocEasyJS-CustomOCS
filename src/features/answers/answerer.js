@@ -550,12 +550,19 @@ function resolveData(data, env) {
     return result;
 }
 
-function requestOnce(url, options) {
-    const { method, responseType, data, type, headers } = options;
+function requestByType(url, options) {
+    const {
+        method,
+        type = 'fetch',
+        data = {},
+        headers = {},
+        timeoutMs = REQUEST_TIMEOUT_MS,
+        readBody = true,
+    } = options;
 
     if (type === 'GM_xmlhttpRequest') {
         return new Promise((resolve, reject) => {
-            if (typeof GM_xmlhttpRequest === 'undefined') {
+            if (typeof GM_xmlhttpRequest !== 'function') {
                 reject(new Error('GM_xmlhttpRequest is not defined'));
                 return;
             }
@@ -571,23 +578,12 @@ function requestOnce(url, options) {
                 method: method.toUpperCase(),
                 data: body,
                 headers: Object.keys(headers).length ? headers : undefined,
-                responseType: responseType === 'json' ? 'json' : undefined,
-                onload: (response) => {
-                    if (response.status === 200) {
-                        if (responseType === 'json') {
-                            try {
-                                resolve(JSON.parse(response.responseText));
-                            } catch (error) {
-                                reject(error);
-                            }
-                        } else {
-                            resolve(response.responseText || '');
-                        }
-                    } else {
-                        reject(new Error(response.responseText || `HTTP ${response.status}`));
-                    }
-                },
-                onerror: (error) => reject(error),
+                responseType: 'text',
+                timeout: timeoutMs,
+                onload: (response) =>
+                    resolve({ status: response.status, text: response.responseText || '' }),
+                onerror: (error) => reject(error instanceof Error ? error : new Error('网络错误')),
+                ontimeout: () => reject(new Error('连接超时')),
             });
         });
     }
@@ -596,8 +592,26 @@ function requestOnce(url, options) {
     if (method === 'post') {
         init.body = JSON.stringify(data);
     }
-    return fetch(url, init).then((response) =>
-        responseType === 'json' ? response.json() : response.text()
+    return fetch(url, init).then(async (response) => ({
+        status: response.status,
+        text: readBody ? await response.text() : '',
+    }));
+}
+
+function requestOnce(url, options) {
+    const { method, responseType, data, type, headers, timeoutMs } = options;
+
+    return requestByType(url, { method, type, data, headers, timeoutMs }).then(
+        ({ status, text }) => {
+            // 保留原有行为：GM 仅接受 HTTP 200
+            if (type === 'GM_xmlhttpRequest' && status !== 200) {
+                throw new Error(text || `HTTP ${status}`);
+            }
+            if (responseType === 'json') {
+                return JSON.parse(text);
+            }
+            return text;
+        }
     );
 }
 
@@ -741,25 +755,18 @@ export async function searchAnswers(env, wrappers = loadAnswerers()) {
     return infos.map(({ response, data, ...rest }) => rest);
 }
 
-function probeRequest(url, method, timeoutMs) {
-    if (typeof GM_xmlhttpRequest === 'function') {
-        return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                url,
-                method: method.toUpperCase(),
-                responseType: 'text',
-                timeout: timeoutMs,
-                onload: (response) => resolve({ status: response.status }),
-                onerror: (error) => reject(error instanceof Error ? error : new Error('网络错误')),
-                ontimeout: () => reject(new Error('连接超时')),
-            });
-        });
-    }
-    return fetch(url, { method }).then((response) => ({ status: response.status }));
+function probeRequest(url, method, type, timeoutMs) {
+    return requestByType(url, {
+        method,
+        type,
+        timeoutMs,
+        readBody: false,
+    });
 }
 
 export async function probeAnswerer(wrapper, timeoutMs = PROBE_TIMEOUT_MS) {
     const name = wrapper?.name || '未知题库';
+    const type = wrapper?.type === 'GM_xmlhttpRequest' ? 'GM_xmlhttpRequest' : 'fetch';
     let url;
     try {
         url = new URL(wrapper?.url);
@@ -770,10 +777,10 @@ export async function probeAnswerer(wrapper, timeoutMs = PROBE_TIMEOUT_MS) {
 
     const startedAt = Date.now();
     const run = async () => {
-        let response = await probeRequest(url.toString(), 'head', timeoutMs);
+        let response = await probeRequest(url.toString(), 'head', type, timeoutMs);
         // HEAD 不被支持时回退 GET
         if (response.status === 405 || response.status === 501) {
-            response = await probeRequest(url.toString(), 'get', timeoutMs);
+            response = await probeRequest(url.toString(), 'get', type, timeoutMs);
         }
         return response;
     };

@@ -753,7 +753,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
 
         const hint = document.createElement('p');
         hint.className = 'ze-answerer-hint';
-        hint.textContent = '粘贴 OCSJS AnswererWrapper 数组（JSON）或配置链接，支持 url、data、method、contentType、type、headers、handler。';
+        hint.textContent = '粘贴 OCSJS AnswererWrapper 数组（JSON）或配置链接。type=fetch（默认）使用浏览器 fetch，题库需配置 CORS；type=GM_xmlhttpRequest 使用脚本管理器跨域，仅限 @connect 允许的域名。';
         root.appendChild(hint);
 
         const textarea = document.createElement('textarea');

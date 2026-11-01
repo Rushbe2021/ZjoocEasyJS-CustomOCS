@@ -276,6 +276,13 @@ a.ze-tiku-credit-brand:hover {
     gap: 12px;
 }
 
+.ze-links-heading {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1d1d1f;
+}
+
 .ze-links-group {
     display: flex;
     flex-direction: column;
@@ -297,10 +304,11 @@ a.ze-tiku-credit-brand:hover {
     padding: 8px 10px;
     border: 0;
     border-radius: 10px;
-    background: #f3f3f3;
+    background: #e8e8e8;
     color: #1d1d1f;
     text-decoration: none;
     cursor: pointer;
+    transition: background-color 150ms ease, transform 100ms ease-out;
 }
 
 .ze-link-card .ze-link-icon {
@@ -325,7 +333,11 @@ a.ze-tiku-credit-brand:hover {
 }
 
 .ze-link-card:hover {
-    background: #e8e8e8;
+    background: #d8d8d8;
+}
+
+.ze-link-card:active {
+    transform: scale(0.97);
 }
 
 .ze-link-card strong {
@@ -888,19 +900,52 @@ a.ze-tiku-credit-brand:hover {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 4px 2px;
+    padding: 2px 0 4px;
 }
 
 .ze-about-title {
+    margin: 0;
     font-size: 14px;
     font-weight: 700;
     color: #1d1d1f;
 }
 
-.ze-about-line {
-    font-size: 12px;
+.ze-about-section {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 0;
+}
+
+.ze-about-section + .ze-about-section {
+    padding-top: 12px;
+    border-top: 1px solid #d8d8d8;
+}
+
+.ze-about-label {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+    color: #8e8e93;
+}
+
+.ze-about-version {
+    margin: 0;
+    padding: 0 2px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: 0.04em;
+    color: #6e6e73;
+    word-break: break-word;
+}
+
+.ze-about-based {
+    font-size: 11px;
+    font-weight: 500;
     line-height: 1.6;
-    color: #3a3a3c;
+    color: #8e8e93;
     word-break: break-word;
 }
 

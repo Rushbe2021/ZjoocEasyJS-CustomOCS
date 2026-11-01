@@ -480,6 +480,49 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         });
     }
 
+    function createLinkCard(item) {
+        const link = document.createElement('a');
+        link.className = 'ze-link-card';
+        link.href = item.href;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+
+        const text = document.createElement('div');
+        text.className = 'ze-link-text';
+        const title = document.createElement('strong');
+        title.textContent = item.name;
+        text.appendChild(title);
+        if (item.desc) {
+            const desc = document.createElement('span');
+            desc.textContent = item.desc;
+            text.appendChild(desc);
+        }
+        if (item.badge) {
+            const badge = document.createElement('em');
+            badge.className = 'ze-link-badge';
+            badge.textContent = item.badge;
+            text.appendChild(badge);
+        }
+        if (item.tags && item.tags.length) {
+            const tags = document.createElement('div');
+            tags.className = 'ze-link-tags';
+            item.tags.forEach((label) => {
+                const tag = document.createElement('span');
+                tag.className = 'ze-link-tag';
+                if (label.includes('更新中')) {
+                    tag.classList.add('is-wip');
+                }
+                tag.textContent = label;
+                tags.appendChild(tag);
+            });
+            text.appendChild(tags);
+        }
+
+        link.appendChild(createLinkIcon(item.icon));
+        link.appendChild(text);
+        return link;
+    }
+
     function renderLinksPage(options = {}) {
         if (!options.fromSwitch) {
             pageSwitchToken += 1;
@@ -490,23 +533,6 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         displayArea.innerHTML = '';
 
         const groups = [
-            {
-                title: '本脚本',
-                items: [
-                    {
-                        name: '官网',
-                        desc: '使用文档与题库',
-                        href: 'https://pages.zaizhexue.top/',
-                        icon: 'site',
-                    },
-                    {
-                        name: 'GitHub',
-                        desc: '源码仓库',
-                        href: 'https://github.com/Miaozeqiu/ZjoocEasyJS',
-                        icon: 'github',
-                    },
-                ],
-            },
             {
                 title: '其他平台',
                 items: [
@@ -534,6 +560,12 @@ import { resetUserConfig } from './core/configManager.js';(function () {
 
         const root = document.createElement('div');
         root.className = 'ze-links';
+
+        const pageHeading = document.createElement('h1');
+        pageHeading.className = 'ze-links-heading';
+        pageHeading.textContent = '链接';
+        root.appendChild(pageHeading);
+
         groups.forEach((group) => {
             const section = document.createElement('div');
             section.className = 'ze-links-group';
@@ -542,46 +574,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
             heading.textContent = group.title;
             section.appendChild(heading);
             group.items.forEach((item) => {
-                const link = document.createElement('a');
-                link.className = 'ze-link-card';
-                link.href = item.href;
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-
-                const text = document.createElement('div');
-                text.className = 'ze-link-text';
-                const title = document.createElement('strong');
-                title.textContent = item.name;
-                text.appendChild(title);
-                if (item.desc) {
-                    const desc = document.createElement('span');
-                    desc.textContent = item.desc;
-                    text.appendChild(desc);
-                }
-                if (item.badge) {
-                    const badge = document.createElement('em');
-                    badge.className = 'ze-link-badge';
-                    badge.textContent = item.badge;
-                    text.appendChild(badge);
-                }
-                if (item.tags && item.tags.length) {
-                    const tags = document.createElement('div');
-                    tags.className = 'ze-link-tags';
-                    item.tags.forEach((label) => {
-                        const tag = document.createElement('span');
-                        tag.className = 'ze-link-tag';
-                        if (label.includes('更新中')) {
-                            tag.classList.add('is-wip');
-                        }
-                        tag.textContent = label;
-                        tags.appendChild(tag);
-                    });
-                    text.appendChild(tags);
-                }
-
-                link.appendChild(createLinkIcon(item.icon));
-                link.appendChild(text);
-                section.appendChild(link);
+                section.appendChild(createLinkCard(item));
             });
             root.appendChild(section);
         });
@@ -864,23 +857,67 @@ import { resetUserConfig } from './core/configManager.js';(function () {
         const root = document.createElement('div');
         root.className = 'ze-about';
 
-        const heading = document.createElement('div');
+        const heading = document.createElement('h1');
         heading.className = 'ze-about-title';
         heading.textContent = '关于';
         root.appendChild(heading);
 
-        const lines = [
-            `当前版本：${CUSTOM_NAME} v${CUSTOM_VERSION}`,
-            `上游版本：${UPSTREAM_NAME} v${UPSTREAM_VERSION}`,
-            BASED_ON,
-        ];
+        const addVersionBlock = (label, versionText, links, note) => {
+            const section = document.createElement('div');
+            section.className = 'ze-about-section';
 
-        lines.forEach((text) => {
-            const line = document.createElement('div');
-            line.className = 'ze-about-line';
-            line.textContent = text;
-            root.appendChild(line);
-        });
+            const labelElement = document.createElement('div');
+            labelElement.className = 'ze-about-label';
+            labelElement.textContent = label;
+
+            const versionElement = document.createElement('h3');
+            versionElement.className = 'ze-about-version';
+            versionElement.textContent = versionText;
+
+            section.append(labelElement, versionElement);
+            links.forEach((item) => {
+                section.appendChild(createLinkCard(item));
+            });
+            if (note) {
+                const noteElement = document.createElement('div');
+                noteElement.className = 'ze-about-based';
+                noteElement.textContent = note;
+                section.appendChild(noteElement);
+            }
+            root.appendChild(section);
+        };
+
+        addVersionBlock(
+            '当前版本',
+            `${CUSTOM_NAME} v${CUSTOM_VERSION}`,
+            [
+                {
+                    name: 'GitHub',
+                    desc: '源码仓库',
+                    href: 'https://github.com/Rushbe2021/ZjoocEasyJS-CustomOCS',
+                    icon: 'github',
+                },
+            ],
+            BASED_ON
+        );
+        addVersionBlock(
+            '上游版本',
+            `${UPSTREAM_NAME} v${UPSTREAM_VERSION}`,
+            [
+                {
+                    name: 'GitHub',
+                    desc: '源码仓库',
+                    href: 'https://github.com/Miaozeqiu/ZjoocEasyJS',
+                    icon: 'github',
+                },
+                {
+                    name: '官网',
+                    desc: '使用文档与题库',
+                    href: 'https://pages.zaizhexue.top/',
+                    icon: 'site',
+                },
+            ]
+        );
 
         displayArea.appendChild(root);
     }

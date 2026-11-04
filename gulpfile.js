@@ -160,5 +160,6 @@ function watchFiles() {
 }
 
 exports.build = gulp.series(clean, bundle, minify, addMetadata, verify);
+exports.verify = verify;
 exports.watch = gulp.series(clean, bundle, minify, addMetadata, verify, watchFiles);
 exports.default = exports.build;

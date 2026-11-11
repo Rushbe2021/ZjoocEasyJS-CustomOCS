@@ -15,6 +15,6 @@
 // @connect      127.0.0.1
 // @icon         https://ss.csid.cc/i/iwqteoqy.png
 // @license      MIT
-// @downloadURL  https://raw.githubusercontent.com/Rushbe2021/ZjoocEasyJS-CustomOCS/refs/heads/main/dist/main.js
-// @updateURL    https://raw.githubusercontent.com/Rushbe2021/ZjoocEasyJS-CustomOCS/refs/heads/main/dist/main.js
+// @downloadURL  https://raw.githubusercontent.com/Rushbe2021/ZjoocEasyJS-CustomOCS/refs/heads/feat/custom-ocs/dist/main.js
+// @updateURL    https://raw.githubusercontent.com/Rushbe2021/ZjoocEasyJS-CustomOCS/refs/heads/feat/custom-ocs/dist/main.js
 // ==/UserScript==

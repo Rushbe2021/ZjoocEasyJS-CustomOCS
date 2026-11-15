@@ -2,7 +2,7 @@
 // @name         在浙学助手-自定义OCS题库
 // @namespace    http://tampermonkey.net/
 // @homepage     https://github.com/Rushbe2021/ZjoocEasyJS-CustomOCS
-// @version      1.5.4
+// @version      1.5.5
 // @description  ZjoocEasyJS 的衍生版本，支持自定义 OCS 兼容题库，移除了微信公众号验证码登录
 // @author       Miaoz, Rushbe2021
 // @match        *://www.zjooc.cn/*

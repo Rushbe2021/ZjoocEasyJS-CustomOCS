@@ -746,7 +746,8 @@ import { resetUserConfig } from './core/configManager.js';(function () {
 
         const hint = document.createElement('p');
         hint.className = 'ze-answerer-hint';
-        hint.textContent = '粘贴 OCSJS AnswererWrapper 数组（JSON）或配置链接。type=fetch（默认）使用浏览器 fetch，题库需配置 CORS；type=GM_xmlhttpRequest 使用脚本管理器跨域，仅限 @connect 允许的域名。';
+        hint.textContent =
+            '粘贴 OCSJS AnswererWrapper 数组（JSON）或配置链接。type=fetch（默认）使用浏览器 fetch，题库需配置 CORS，且 https 页面无法请求 http 题库；type=GM_xmlhttpRequest 使用脚本管理器跨域（本脚本已声明 @connect *），http 题库请使用该方式。「测试连接」会按配置真实发送一次请求。';
         root.appendChild(hint);
 
         const textarea = document.createElement('textarea');
@@ -839,7 +840,7 @@ import { resetUserConfig } from './core/configManager.js';(function () {
 
         const warning = document.createElement('p');
         warning.className = 'ze-answerer-hint ze-answerer-warning';
-        warning.textContent = 'handler 会以脚本形式执行，请只粘贴可信配置；非官方域名需要脚本管理器授权跨域访问。';
+        warning.textContent = 'handler 会以脚本形式执行，请只粘贴可信配置；脚本已声明 @connect *，请自行确认为题库地址可信。';
         root.appendChild(warning);
 
         displayArea.appendChild(root);

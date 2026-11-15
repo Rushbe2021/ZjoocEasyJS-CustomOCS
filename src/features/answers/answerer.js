@@ -3,6 +3,11 @@ import { loadAnswerers } from '../../core/answererConfig.js';
 const REQUEST_TIMEOUT_MS = 60 * 1000;
 const PROBE_TIMEOUT_MS = 10 * 1000;
 const DEFAULT_HANDLER = 'return (res)=> [JSON.stringify(res), undefined]';
+const PROBE_ENV = {
+    title: '连接测试',
+    options: 'A. 连接测试',
+    type: 'single',
+};
 const DEFAULT_SEPARATORS = ['===', '#', '---', '###', '|', ';', '；'];
 const CACHE_PREFIX = 'ze_answerer_cache:';
 const CACHE_TTL_MS = 30 * 60 * 1000;
@@ -550,15 +555,48 @@ function resolveData(data, env) {
     return result;
 }
 
+function prepareRequest(wrapper, env) {
+    const method = String(wrapper?.method || 'get').toLowerCase();
+    const wrapperData = wrapper?.data || {};
+    const rawUrl = String(wrapper?.url || '');
+
+    if (method === 'get') {
+        const url = new URL(resolvePlaceholders(rawUrl, env, { encodeURI: true }));
+        Object.keys(wrapperData).forEach((key) => {
+            const value = resolvePlaceholders(wrapperData[key], env);
+            url.searchParams.set(key, value == null ? '' : String(value));
+        });
+        return { url: url.toString(), method, data: {} };
+    }
+    if (method === 'post') {
+        return { url: new URL(rawUrl).toString(), method, data: resolveData(wrapperData, env) };
+    }
+    throw new Error('不支持的请求方式');
+}
+
+function createNetworkError(details, type) {
+    const info = details && typeof details === 'object' ? details : {};
+    const reason = String(info.error || info.statusText || '').trim();
+    const status = Number(info.status) || 0;
+    const detail = reason ? `（${reason}）` : status ? `（HTTP ${status}）` : '';
+    const suffix =
+        type === 'GM_xmlhttpRequest'
+            ? '，请检查网络连接，以及脚本管理器是否允许访问该域名（@connect）。'
+            : '，请检查网络连接；type=fetch 需要题库开启 CORS，且 https 页面无法请求 http 题库，可改用 GM_xmlhttpRequest。';
+    return new Error(`网络错误${detail}${suffix}`);
+}
+
 function requestByType(url, options) {
     const {
-        method,
+        method = 'get',
         type = 'fetch',
         data = {},
         headers = {},
         timeoutMs = REQUEST_TIMEOUT_MS,
         readBody = true,
     } = options;
+    const verb = String(method).toUpperCase();
+    const sendBody = verb !== 'GET' && verb !== 'HEAD';
 
     if (type === 'GM_xmlhttpRequest') {
         return new Promise((resolve, reject) => {
@@ -567,35 +605,39 @@ function requestByType(url, options) {
                 return;
             }
             const contentType = headers['Content-Type'] || headers['content-type'];
-            const body =
-                contentType === 'application/x-www-form-urlencoded'
+            const payload = sendBody
+                ? contentType === 'application/x-www-form-urlencoded'
                     ? new URLSearchParams(data).toString()
-                    : Object.keys(data).length
-                      ? JSON.stringify(data)
-                      : undefined;
+                    : JSON.stringify(data)
+                : undefined;
             GM_xmlhttpRequest({
                 url,
-                method: method.toUpperCase(),
-                data: body,
+                method: verb,
+                data: payload,
                 headers: Object.keys(headers).length ? headers : undefined,
                 responseType: 'text',
                 timeout: timeoutMs,
                 onload: (response) =>
                     resolve({ status: response.status, text: response.responseText || '' }),
-                onerror: (error) => reject(error instanceof Error ? error : new Error('网络错误')),
+                onerror: (details) => reject(createNetworkError(details, 'GM_xmlhttpRequest')),
                 ontimeout: () => reject(new Error('连接超时')),
             });
         });
     }
 
-    const init = { method, headers };
-    if (method === 'post') {
+    const init = { method: verb, headers };
+    if (sendBody) {
         init.body = JSON.stringify(data);
     }
-    return fetch(url, init).then(async (response) => ({
-        status: response.status,
-        text: readBody ? await response.text() : '',
-    }));
+    return fetch(url, init).then(
+        async (response) => ({
+            status: response.status,
+            text: readBody ? await response.text() : '',
+        }),
+        (error) => {
+            throw createNetworkError(error, 'fetch');
+        }
+    );
 }
 
 function requestOnce(url, options) {
@@ -608,7 +650,16 @@ function requestOnce(url, options) {
                 throw new Error(text || `HTTP ${status}`);
             }
             if (responseType === 'json') {
-                return JSON.parse(text);
+                try {
+                    return JSON.parse(text);
+                } catch (error) {
+                    const preview = String(text ?? '')
+                        .replace(/\s+/g, ' ')
+                        .slice(0, 120);
+                    throw new Error(
+                        `题库返回内容不是有效 JSON（HTTP ${status}）${preview ? `：${preview}` : ''}`
+                    );
+                }
             }
             return text;
         }
@@ -619,34 +670,19 @@ async function requestWrapper(wrapper, env) {
     const {
         name = '未知题库',
         homepage = '#',
-        method = 'get',
         type = 'fetch',
         contentType = 'json',
         headers = {},
-        data: wrapperData = {},
         handler = DEFAULT_HANDLER,
     } = wrapper;
 
     try {
-        let url;
-        let requestData = {};
-
-        if (method.toLowerCase() === 'get') {
-            url = new URL(resolvePlaceholders(wrapper.url, env, { encodeURI: true }));
-            Object.keys(wrapperData).forEach((key) => {
-                const value = resolvePlaceholders(wrapperData[key], env);
-                url.searchParams.set(key, value == null ? '' : String(value));
-            });
-        } else if (method.toLowerCase() === 'post') {
-            url = new URL(wrapper.url);
-            requestData = resolveData(wrapperData, env);
-        } else {
-            throw new Error('不支持的请求方式');
-        }
+        const prepared = prepareRequest(wrapper, env);
+        const requestData = prepared.data;
 
         const responseData = await withTimeout(
-            requestOnce(url.toString(), {
-                method,
+            requestOnce(prepared.url, {
+                method: prepared.method,
                 responseType: contentType,
                 data: requestData,
                 type,
@@ -755,49 +791,70 @@ export async function searchAnswers(env, wrappers = loadAnswerers()) {
     return infos.map(({ response, data, ...rest }) => rest);
 }
 
-function probeRequest(url, method, type, timeoutMs) {
-    return requestByType(url, {
-        method,
-        type,
-        timeoutMs,
-        readBody: false,
-    });
-}
-
 export async function probeAnswerer(wrapper, timeoutMs = PROBE_TIMEOUT_MS) {
     const name = wrapper?.name || '未知题库';
     const type = wrapper?.type === 'GM_xmlhttpRequest' ? 'GM_xmlhttpRequest' : 'fetch';
-    let url;
+
+    let prepared;
     try {
-        url = new URL(wrapper?.url);
+        prepared = prepareRequest(wrapper, PROBE_ENV);
     } catch (error) {
-        return { name, ok: false, status: 'invalid', message: '配置错误' };
-    }
-    url.searchParams.set('t', String(Date.now()));
-
-    const startedAt = Date.now();
-    const run = async () => {
-        let response = await probeRequest(url.toString(), 'head', type, timeoutMs);
-        // HEAD 不被支持时回退 GET
-        if (response.status === 405 || response.status === 501) {
-            response = await probeRequest(url.toString(), 'get', type, timeoutMs);
-        }
-        return response;
-    };
-
-    try {
-        const response = await withTimeout(run(), timeoutMs, '连接超时');
-        const latency = Date.now() - startedAt;
-        const ok = response.status >= 200 && response.status < 400;
         return {
             name,
-            ok,
-            status: ok ? 'success' : 'error',
-            statusCode: response.status,
+            ok: false,
+            status: 'invalid',
+            message: `配置错误：${error?.message || '无法构造请求'}`,
+        };
+    }
+
+    // 按配置真实发起一次请求：GET 加时间戳防缓存，POST 原样发送配置的数据
+    const requestUrl = new URL(prepared.url);
+    if (prepared.method === 'get') {
+        requestUrl.searchParams.set('t', String(Date.now()));
+    }
+
+    const startedAt = Date.now();
+    try {
+        const response = await withTimeout(
+            requestByType(requestUrl.toString(), {
+                method: prepared.method,
+                type,
+                data: prepared.data,
+                headers: JSON.parse(JSON.stringify(wrapper?.headers || {})),
+                timeoutMs,
+            }),
+            timeoutMs,
+            '连接超时'
+        );
+        const latency = Date.now() - startedAt;
+        const status = Number(response.status) || 0;
+        if (status >= 200 && status < 400) {
+            return {
+                name,
+                ok: true,
+                status: 'success',
+                statusCode: status,
+                latency,
+                message: `连接成功（HTTP ${status}，${latency}ms）`,
+            };
+        }
+        if (status === 401 || status === 403) {
+            return {
+                name,
+                ok: false,
+                status: 'auth',
+                statusCode: status,
+                latency,
+                message: `服务器已连通，但鉴权失败（HTTP ${status}，${latency}ms），请检查密钥或请求头`,
+            };
+        }
+        return {
+            name,
+            ok: false,
+            status: 'error',
+            statusCode: status,
             latency,
-            message: ok
-                ? `连接成功（HTTP ${response.status}，${latency}ms）`
-                : `连接失败（HTTP ${response.status}，${latency}ms）`,
+            message: `服务器已响应，但返回 HTTP ${status}（${latency}ms），请检查接口地址或参数`,
         };
     } catch (error) {
         if (error?.message === '连接超时') {

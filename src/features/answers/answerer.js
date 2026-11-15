@@ -732,6 +732,32 @@ async function requestWrapper(wrapper, env) {
     }
 }
 
+function normalizeEnv(env) {
+    const source = env && typeof env === 'object' ? env : {};
+    const rawOptions = Array.isArray(source.options)
+        ? source.options.filter((item) => item != null && item !== '')
+        : typeof source.options === 'string'
+          ? source.options.split('\n')
+          : [];
+    const seen = new Set();
+    const lines = [];
+    rawOptions.forEach((item) => {
+        const line = String(item ?? '');
+        if (seen.has(line)) {
+            return;
+        }
+        seen.add(line);
+        lines.push(line);
+    });
+
+    return {
+        ...source,
+        title: source.title == null ? '' : String(source.title),
+        options: lines.join('\n'),
+        type: source.type || 'unknown',
+    };
+}
+
 function buildCacheKey(env, wrappers) {
     return [
         wrappers.map((wrapper) => `${wrapper.name}@${wrapper.url}`).join('|'),
@@ -778,12 +804,13 @@ export async function searchAnswers(env, wrappers = loadAnswerers()) {
     if (!list.length) {
         throw new Error('题库配置不能为空，请配置后重新开始自动答题。');
     }
-    const key = buildCacheKey(env, list);
+    const normalizedEnv = normalizeEnv(env);
+    const key = buildCacheKey(normalizedEnv, list);
     const cached = readCache(key);
     if (cached) {
         return cached;
     }
-    const infos = await Promise.all(list.map((wrapper) => requestWrapper(wrapper, env)));
+    const infos = await Promise.all(list.map((wrapper) => requestWrapper(wrapper, normalizedEnv)));
     if (infos.some((info) => info.results && info.results.length)) {
         const cacheable = infos.map(({ response, data, ...rest }) => rest);
         writeCache(key, cacheable);
